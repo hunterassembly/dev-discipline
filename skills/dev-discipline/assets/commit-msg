@@ -37,10 +37,10 @@ if [ "$SUBJECT_LEN" -gt 72 ]; then
   echo -e "${YELLOW}⚠️  Subject line is $SUBJECT_LEN chars (aim for ≤72).${NC}"
 fi
 
-# --- 3. Why line required ---
-if ! echo "$MSG" | grep -qiE '^why: .+'; then
+# --- 3. Why line required (lowercase only) ---
+if ! echo "$MSG" | grep -qE '^why: .+'; then
   echo -e "${RED}❌ Missing 'why:' line in commit message.${NC}"
-  echo "   Add a line starting with 'why:' explaining the motivation."
+  echo "   Add a line starting with 'why:' (lowercase) explaining the motivation."
   echo ""
   echo "   Example:"
   echo "   feat(auth): add rate limiting to login endpoint"

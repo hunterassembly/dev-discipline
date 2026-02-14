@@ -91,6 +91,26 @@ End-of-session audit agent.
 .agents/skills/dev-reconciliation/scripts/reconcile.sh --since "8 hours ago"
 ```
 
+## What Gets Committed?
+
+When you run setup, `.dev/` is created with both tracked and local-only content:
+
+| Path | Tracked? | Purpose |
+|------|----------|---------|
+| `.dev/contract.md` | ✅ Yes | Discipline rules (shared with team) |
+| `.dev/decisions/` | ✅ Yes | Architectural decision records |
+| `.dev/WORKLOG.md` | ✅ Yes | Project worklog |
+| `.dev/diary/` | ❌ No (gitignored) | Auto-generated commit diary (local) |
+| `.dev/.last-reconciliation` | ❌ No | Reconciliation timestamp (local) |
+
+## Uninstall
+
+```bash
+.agents/skills/dev-discipline/scripts/teardown.sh
+```
+
+Removes hooks, bridge references from AGENTS.md/CLAUDE.md, and Claude Code rules. Does **not** delete `.dev/` (that's your data).
+
 ## Philosophy
 
 - **Hooks enforce, instructions guide.** AGENTS.md tells the agent what to do; hooks verify it happened.

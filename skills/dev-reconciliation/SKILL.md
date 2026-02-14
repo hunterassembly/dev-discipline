@@ -67,7 +67,13 @@ For each commit:
 - Are they captured in `.dev/decisions/`?
 - **Recommendation:** Draft decision records for any uncaptured decisions
 
-### 6. Dev Diary Enrichment
+### 6. Hook Bypass Detection
+- Compare commit hashes from `git log` against entries in `.dev/diary/YYYY-MM-DD.md`
+- Commits present in git log but missing from the diary likely bypassed hooks (`--no-verify`)
+- **Flag:** List any commits without diary entries
+- **Recommendation:** Re-run the commit through hooks or manually verify it meets discipline standards
+
+### 7. Dev Diary Enrichment
 - Read the raw diary entries from `.dev/diary/`
 - Write a coherent narrative summary of the day's work
 - Include: what was built, key decisions made, problems encountered, what's next
