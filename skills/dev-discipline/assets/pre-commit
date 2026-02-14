@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Dev Discipline — Pre-Commit Hook
+# Warns on potential discipline violations. Advisory by default.
+
+WARNINGS=0
+ERRORS=0
+
+# Colors (if terminal supports them)
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+warn() { echo -e "${YELLOW}⚠️  $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
+err()  { echo -e "${RED}❌ $1${NC}"; ERRORS=$((ERRORS + 1)); }
+
+# --- 1. Large commit check ---
+FILE_COUNT=$(git diff --cached --name-only | wc -l | tr -d ' ')
+if [ "$FILE_COUNT" -gt 20 ]; then
+  warn "Large commit: $FILE_COUNT files staged. Consider splitting into smaller commits."
+elif [ "$FILE_COUNT" -gt 10 ]; then
+  warn "$FILE_COUNT files staged. Is this really one concern?"
+fi
+
+# --- 2. Multi-module check ---
+# Count distinct top-level directories touched
+DIR_COUNT=$(git diff --cached --name-only | cut -d'/' -f1 | sort -u | wc -l | tr -d ' ')
+if [ "$DIR_COUNT" -gt 4 ]; then
+  warn "Changes span $DIR_COUNT top-level directories. Might be multiple concerns."
+fi
+
+# --- 3. Source without tests ---
+SRC_CHANGED=$(git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx|py|rs|go|rb|java|swift|kt)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' | head -1)
+TEST_CHANGED=$(git diff --cached --name-only | grep -Ei '(test|spec|_test)' | head -1)
+if [ -n "$SRC_CHANGED" ] && [ -z "$TEST_CHANGED" ]; then
+  warn "Source files changed but no test files included. If this is a behavioral change, add tests."
+fi
+
+# --- 4. Debug artifact check ---
+if git diff --cached -U0 | grep -E '^\+' | grep -Ev '^\+\+\+' | grep -qE '(console\.log|debugger|binding\.pry|import pdb|pdb\.set_trace|print\(.*DEBUG)'; then
+  err "Debug statements detected in staged changes. Remove before committing."
+fi
+
+# --- 5. Conflict marker check ---
+if git diff --cached | grep -qE '^(\+<<<<<<< |^\+=======$|^\+>>>>>>> )'; then
+  err "Merge conflict markers found in staged changes."
+fi
+
+# --- Summary ---
+if [ "$WARNINGS" -gt 0 ] || [ "$ERRORS" -gt 0 ]; then
+  echo ""
+  echo "Dev Discipline: $WARNINGS warning(s), $ERRORS error(s)"
+fi
+
+if [ "$ERRORS" -gt 0 ]; then
+  echo "Commit blocked. Fix errors above."
+  exit 1
+fi
+
+exit 0

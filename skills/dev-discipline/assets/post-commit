@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Dev Discipline — Post-Commit Hook
+# Appends commit metadata to the dev diary. Fast, no AI calls.
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+DIARY_DIR="$REPO_ROOT/.dev/diary"
+
+# Create diary dir if needed
+mkdir -p "$DIARY_DIR"
+
+DATE=$(date +%Y-%m-%d)
+TIME=$(date +%H:%M:%S)
+DIARY_FILE="$DIARY_DIR/$DATE.md"
+HASH=$(git rev-parse --short HEAD)
+AUTHOR=$(git log -1 --pretty=%an)
+MSG=$(git log -1 --pretty=%B)
+FILES=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null | head -20)
+STATS=$(git diff-tree --no-commit-id --stat -r HEAD 2>/dev/null | tail -1)
+
+# Create diary file with header if new
+if [ ! -f "$DIARY_FILE" ]; then
+  echo "# Dev Diary — $DATE" > "$DIARY_FILE"
+  echo "" >> "$DIARY_FILE"
+fi
+
+# Append entry
+cat >> "$DIARY_FILE" << EOF
+
+---
+
+## $TIME — \`$HASH\` ($AUTHOR)
+
+**Message:**
+$MSG
+
+**Stats:** $STATS
+
+**Files changed:**
+$(echo "$FILES" | sed 's/^/- /')
+
+EOF
+
+# Silent — don't output anything to avoid noise during agent work
