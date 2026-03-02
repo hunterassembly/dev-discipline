@@ -101,19 +101,29 @@ EOF
   echo "✅ Created .dev/WORKLOG.md (tracked)"
 fi
 
-# Add .dev/diary/ to .gitignore if not already there
-if [ -f "$REPO_ROOT/.gitignore" ]; then
-  if ! grep -q '.dev/diary/' "$REPO_ROOT/.gitignore" 2>/dev/null; then
-    echo "" >> "$REPO_ROOT/.gitignore"
-    echo "# Dev discipline diary (local, auto-generated)" >> "$REPO_ROOT/.gitignore"
-    echo ".dev/diary/" >> "$REPO_ROOT/.gitignore"
-    echo "✅ Added .dev/diary/ to .gitignore"
+# Add local-only dev files to .gitignore
+GITIGNORE="$REPO_ROOT/.gitignore"
+if [ ! -f "$GITIGNORE" ]; then
+  touch "$GITIGNORE"
+fi
+
+ADDED_LOCAL_RULE=false
+if ! grep -qF '# Dev discipline local files' "$GITIGNORE" 2>/dev/null; then
+  echo "" >> "$GITIGNORE"
+  echo "# Dev discipline local files" >> "$GITIGNORE"
+fi
+
+for entry in ".dev/diary/" ".dev/.last-reconciliation"; do
+  if ! grep -qF "$entry" "$GITIGNORE" 2>/dev/null; then
+    echo "$entry" >> "$GITIGNORE"
+    ADDED_LOCAL_RULE=true
   fi
+done
+
+if [ "$ADDED_LOCAL_RULE" = true ]; then
+  echo "✅ Updated .gitignore with local dev discipline paths"
 else
-  # Create .gitignore with diary entry
-  echo "# Dev discipline diary (local, auto-generated)" > "$REPO_ROOT/.gitignore"
-  echo ".dev/diary/" >> "$REPO_ROOT/.gitignore"
-  echo "✅ Created .gitignore with .dev/diary/"
+  echo "✅ .gitignore already has local dev discipline paths"
 fi
 
 # Bridge into AGENTS.md (for Codex CLI and other AGENTS.md-aware tools)

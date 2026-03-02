@@ -4,7 +4,8 @@ description: >
   Manages the automatic dev diary — a log of all commits and work sessions.
   The post-commit hook writes raw entries; this skill helps review, summarize,
   and navigate the diary. Use when asked to "show today's work", "summarize
-  what happened", or "check the dev diary".
+  what happened", or "check the dev diary". Avoid when authoritative source-of-truth
+  is needed for code content (use git diff/log directly for final verification).
 license: Apache-2.0
 metadata:
   author: hunterassembly
@@ -14,6 +15,12 @@ metadata:
 # Dev Diary
 
 The dev diary is an automatically maintained log of all commits, located in `.dev/diary/`.
+
+## Routing Guidance
+
+- Use when: summarizing recent work, building standup updates, or tracking when a file changed
+- Do not use when: doing root-cause analysis that requires full diffs or exact blame history
+- Primary outputs: concise work summaries, date-range narratives, and standup-ready updates
 
 ## How It Works
 
@@ -41,6 +48,16 @@ Read the last 1-2 days of diary entries and draft a standup update:
 - What was done
 - What's in progress
 - What's blocked
+
+Use `templates/standup-update.md` as the default output shape.
+
+## Output Contract
+
+When summarizing diary entries, include:
+1. Commit count and date range covered
+2. Main code areas touched
+3. Key completed outcomes
+4. In-progress items and blockers (if any)
 
 ## Diary Entry Format
 

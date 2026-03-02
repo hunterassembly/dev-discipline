@@ -50,7 +50,23 @@ Run the setup script to install git hooks:
 This will:
 - Install pre-commit, commit-msg, and post-commit hooks
 - Create `.dev/diary/`, `.dev/decisions/`, and `.dev/WORKLOG.md`
-- Add `.dev/diary/` to `.gitignore`
+- Add `.dev/diary/` and `.dev/.last-reconciliation` to `.gitignore`
+
+Optional helper scripts (repo root):
+
+```bash
+./scripts/docs-list.sh     # Validate docs front matter + list docs
+./scripts/committer "fix: ..." path/to/file path/to/other
+./scripts/doc-gardener.sh  # Generate local docs/plan drift report + score snapshot
+```
+
+If you only installed `skills/*`, run helpers from the skill path:
+
+```bash
+.agents/skills/dev-discipline/scripts/docs-list.sh
+.agents/skills/dev-discipline/scripts/committer "fix: ..." path/to/file
+.agents/skills/dev-discipline/scripts/doc-gardener.sh --since "24 hours ago"
+```
 
 ## Skills
 
@@ -75,6 +91,7 @@ Reviews and navigates the auto-generated commit diary.
 - Summarize today's work
 - Generate standup updates
 - Find when specific files changed
+- Use a reusable standup template for consistent updates
 
 ### `dev-reconciliation`
 End-of-session audit agent.
@@ -90,6 +107,51 @@ End-of-session audit agent.
 ```bash
 .agents/skills/dev-reconciliation/scripts/reconcile.sh --since "8 hours ago"
 ```
+
+## Shell Tips Alignment
+
+This repo now incorporates several patterns from the OpenAI skills + shell guidance:
+
+- **Routing-style skill descriptions**: each `SKILL.md` now has explicit "use when / do not use when / outputs" guidance
+- **Template-backed outputs**: report and standup templates live inside skill directories so agents can produce consistent output quickly
+- **Edge-case handling in shell scripts**: reconciliation handles no-commit ranges safely and checks diary coverage across all dates in range
+- **More explicit local state handling**: setup now ignores `.dev/.last-reconciliation` by default
+- **Portable workflow playbooks**: slash-command docs (`reconcile`, `handoff`, `pickup`) are reusable in any project
+- **Docs hygiene checks**: `scripts/docs-list.sh` enforces `summary` and `read_when` in docs front matter
+- **Safer commit workflow**: optional `scripts/committer` stages only explicitly listed files
+- **Local docs drift loop**: `scripts/doc-gardener.sh` creates a checklist report and quality snapshot
+
+## General-Use Design
+
+This repo is intentionally project-agnostic:
+
+- No machine-specific absolute paths in scripts
+- Minimal shell dependencies (bash, git, standard Unix tools)
+- Docs and workflow helpers can be copied into any repo
+- Skill guidance focuses on discipline patterns, not framework-specific conventions
+
+## Local Quality Loop
+
+For a local-first quality pass (no GitHub Actions required):
+
+1. `./scripts/docs-list.sh`
+2. `./scripts/doc-gardener.sh --since "24 hours ago"`
+3. `.agents/skills/dev-reconciliation/scripts/reconcile.sh --since "24 hours ago"`
+4. Update `docs/QUALITY_SCORE.md` from the latest local reports
+
+## AGENTS.md Checklist
+
+Use `docs/agents-quality-checklist.md` to audit repo-level agent instructions.
+It is designed as a fast pass/fail rubric for safety, workflow clarity, tooling, and verification discipline.
+
+## Slash Commands
+
+Reusable workflow playbooks live in:
+
+- `docs/slash-commands/README.md`
+- `docs/slash-commands/reconcile.md`
+- `docs/slash-commands/handoff.md`
+- `docs/slash-commands/pickup.md`
 
 ## What Gets Committed?
 
@@ -125,18 +187,55 @@ Removes hooks, bridge references from AGENTS.md/CLAUDE.md, and Claude Code rules
 skills/
 ├── dev-discipline/
 │   ├── SKILL.md              # Work contract + rules
+│   ├── templates/
+│   │   └── decision-record.md # ADR-style decision template
 │   ├── scripts/
-│   │   └── setup.sh          # Install hooks, create dirs
+│   │   ├── setup.sh          # Install hooks, create dirs
+│   │   ├── teardown.sh       # Uninstall hooks + bridges
+│   │   ├── docs-list.sh      # Docs index + front-matter checks
+│   │   ├── committer         # Explicit-file commit helper
+│   │   └── doc-gardener.sh   # Local docs/plan drift scanner
 │   └── assets/
 │       ├── pre-commit         # Diff analysis, test check
 │       ├── commit-msg         # Conventional commit enforcement
 │       └── post-commit        # Dev diary auto-append
 ├── dev-diary/
-│   └── SKILL.md              # Diary review + navigation
+│   ├── SKILL.md              # Diary review + navigation
+│   └── templates/
+│       └── standup-update.md  # Daily update format
 └── dev-reconciliation/
     ├── SKILL.md              # Reconciliation agent instructions
+    ├── templates/
+    │   └── reconciliation-report.md # Report skeleton
     └── scripts/
         └── reconcile.sh      # Standalone reconciliation launcher
+
+scripts/
+├── docs-list.sh              # Wrapper to dev-discipline docs-list
+├── committer                 # Wrapper to dev-discipline committer
+└── doc-gardener.sh           # Wrapper to dev-discipline doc-gardener
+
+docs/
+├── QUALITY_SCORE.md
+├── agents-quality-checklist.md
+├── design/
+│   └── README.md
+├── refs/
+│   └── README.md
+├── quality/
+│   └── README.md
+├── plans/
+│   ├── active/
+│   │   ├── README.md
+│   │   └── plan-template.md
+│   └── completed/
+│       └── README.md
+├── slash-commands.md
+└── slash-commands/
+    ├── README.md
+    ├── reconcile.md
+    ├── handoff.md
+    └── pickup.md
 ```
 
 ## License

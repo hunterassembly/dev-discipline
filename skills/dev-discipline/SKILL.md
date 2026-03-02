@@ -1,10 +1,10 @@
 ---
 name: dev-discipline
 description: >
-  Enforces commit discipline for AI coding agents. Activates on any code change task.
+  Enforces commit discipline for AI coding agents. Use when making code changes, preparing commits,
+  or setting up repo discipline hooks. Avoid for read-only research tasks with no file changes.
   Ensures one concern per commit, conventional commit messages, test coverage for behavioral
-  changes, and decision documentation. Installs git hooks for automated enforcement.
-  Use when starting a coding session or making code changes.
+  changes, and decision documentation. Produces a disciplined commit workflow and installs git hooks.
 license: Apache-2.0
 metadata:
   author: hunterassembly
@@ -15,11 +15,19 @@ metadata:
 
 You are working in a project that enforces coding discipline. Follow these rules for every code change.
 
+## Routing Guidance
+
+- Use when: writing code, staging changes, preparing commit messages, or bootstrapping `.dev/` discipline files
+- Do not use when: only reading code, brainstorming, or doing documentation review with zero code changes
+- Primary outputs: clean commit boundaries, conventional commit messages with `why:`, and up-to-date `.dev/` records
+
 ## Before You Start
 
 1. Run `scripts/setup.sh` if git hooks aren't installed yet (check: `.git/hooks/pre-commit` should be a symlink or contain dev-discipline logic)
 2. Read the worklog if one exists: `.dev/WORKLOG.md`
-3. Understand what you're about to change and why before writing code
+3. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
+4. Understand what you're about to change and why before writing code
+5. For longer tasks, create or update an active plan under `docs/plans/active/`
 
 ## Commit Rules
 
@@ -69,6 +77,8 @@ update search and fix header and add tests
 - If you make an architectural decision, create a decision record in `.dev/decisions/`
 - Keep README current — if setup steps change, update them immediately
 
+Use `templates/decision-record.md` when creating a new decision entry.
+
 ## What NOT To Do
 
 - **Never use `--no-verify`.** The hooks exist for a reason.
@@ -76,13 +86,21 @@ update search and fix header and add tests
 - **Never leave TODO comments without a tracking issue.** Create the issue, reference it.
 - **Never skip the `why:` in commit messages.** Future-you needs to know *why*, not just *what*.
 
+## Edge Cases
+
+- If the task is docs-only (no behavior change), tests are optional but commit format rules still apply.
+- If hooks are unavailable (CI containers, minimal checkout), run equivalent checks manually before commit.
+- If a change spans concerns, split into sequential commits rather than one large "catch-all" commit.
+
 ## Process
 
 1. Think → Plan what you'll change
 2. Change → Make the minimal change
 3. Test → Verify it works
-4. Commit → One concern, conventional format, with `why:`
+4. Commit → One concern, conventional format, with `why:` (you may use `scripts/committer` or `.agents/skills/dev-discipline/scripts/committer` to stage explicit paths only)
 5. Repeat → Next concern gets its own commit
+
+Before handoff, run local doc drift check (`scripts/doc-gardener.sh` or `.agents/skills/dev-discipline/scripts/doc-gardener.sh`).
 
 ## Hook Enforcement
 

@@ -10,12 +10,32 @@ DRY_RUN=false
 MAX_DIFF_BYTES=51200   # ~50KB
 MAX_COMMIT_LINES=200
 
+usage() {
+  echo "Usage: ./reconcile.sh [--since \"24 hours ago\"] [--agent codex|claude] [--dry-run]"
+}
+
 while [[ $# -gt 0 ]]; do
-  case $1 in
-    --since) SINCE="$2"; shift 2 ;;
-    --agent) AGENT="$2"; shift 2 ;;
+  case "$1" in
+    --since)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ --since requires a value."
+        usage
+        exit 1
+      fi
+      SINCE="$2"
+      shift 2
+      ;;
+    --agent)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ --agent requires a value (codex|claude)."
+        usage
+        exit 1
+      fi
+      AGENT="$2"
+      shift 2
+      ;;
     --dry-run) DRY_RUN=true; shift ;;
-    *) echo "Unknown option: $1"; exit 1 ;;
+    *) echo "Unknown option: $1"; usage; exit 1 ;;
   esac
 done
 
@@ -42,8 +62,12 @@ if [ -z "$SINCE" ]; then
 fi
 
 # Gather data with truncation
-COMMITS=$(git log --since="$SINCE" --oneline 2>/dev/null | head -$MAX_COMMIT_LINES || echo "No commits found")
-COMMIT_COUNT=$(echo "$COMMITS" | grep -c '.' || echo "0")
+COMMITS=$(git log --since="$SINCE" --oneline 2>/dev/null | head -n "$MAX_COMMIT_LINES" || true)
+if [ -z "$COMMITS" ]; then
+  COMMIT_COUNT=0
+else
+  COMMIT_COUNT=$(printf "%s\n" "$COMMITS" | grep -c '.')
+fi
 
 if [ "$COMMIT_COUNT" -eq 0 ]; then
   echo "No commits since $SINCE. Nothing to reconcile."
@@ -53,24 +77,45 @@ fi
 echo "🔍 Reconciling $COMMIT_COUNT commits since $SINCE"
 
 # Truncate diffs to MAX_DIFF_BYTES
-DIFFS=$(git log --since="$SINCE" -p --stat 2>/dev/null | head -c $MAX_DIFF_BYTES)
-DIFF_FULL_SIZE=$(git log --since="$SINCE" -p --stat 2>/dev/null | wc -c | tr -d ' ')
+DIFF_TMP=$(mktemp)
+DIARY_AGG_TMP=$(mktemp)
+trap 'rm -f "$DIFF_TMP" "$DIARY_AGG_TMP"' EXIT
+
+git log --since="$SINCE" -p --stat > "$DIFF_TMP" 2>/dev/null || true
+DIFFS=$(head -c "$MAX_DIFF_BYTES" "$DIFF_TMP")
+DIFF_FULL_SIZE=$(wc -c < "$DIFF_TMP" | tr -d ' ')
 TRUNCATION_NOTE=""
 if [ "$DIFF_FULL_SIZE" -gt "$MAX_DIFF_BYTES" ]; then
   TRUNCATION_NOTE="(truncated from ${DIFF_FULL_SIZE} bytes to ${MAX_DIFF_BYTES} bytes — review individual commits for full diffs)"
 fi
 
-DIARY=$(cat "$DIARY_DIR/$DATE.md" 2>/dev/null || echo "No diary entries")
+COMMIT_DATES=$(git log --since="$SINCE" --format=%cd --date=format:%Y-%m-%d 2>/dev/null | sort -u)
+DIARY_HASHES=""
+for day in $COMMIT_DATES; do
+  DIARY_FILE="$DIARY_DIR/$day.md"
+  if [ -f "$DIARY_FILE" ]; then
+    printf "### %s\n" "$day" >> "$DIARY_AGG_TMP"
+    cat "$DIARY_FILE" >> "$DIARY_AGG_TMP"
+    printf "\n\n" >> "$DIARY_AGG_TMP"
+    HASHES_FOR_DAY=$(grep -oE '`[a-f0-9]{7}`' "$DIARY_FILE" | tr -d '`' || true)
+    if [ -n "$HASHES_FOR_DAY" ]; then
+      DIARY_HASHES="${DIARY_HASHES}${HASHES_FOR_DAY}"$'\n'
+    fi
+  fi
+done
+
+if [ -s "$DIARY_AGG_TMP" ]; then
+  DIARY=$(cat "$DIARY_AGG_TMP")
+else
+  DIARY="No diary entries"
+fi
 
 # Hook bypass detection: compare commit hashes vs diary entries
 COMMIT_HASHES=$(git log --since="$SINCE" --format=%h 2>/dev/null)
-DIARY_HASHES=$(grep -oE '`[a-f0-9]{7}`' "$DIARY_DIR/$DATE.md" 2>/dev/null | tr -d '`' || echo "")
 BYPASS_COMMITS=""
 for hash in $COMMIT_HASHES; do
-  if [ -n "$DIARY_HASHES" ]; then
-    if ! echo "$DIARY_HASHES" | grep -q "$hash"; then
-      BYPASS_COMMITS="$BYPASS_COMMITS $hash"
-    fi
+  if ! printf "%s\n" "$DIARY_HASHES" | grep -qx "$hash"; then
+    BYPASS_COMMITS="$BYPASS_COMMITS $hash"
   fi
 done
 
