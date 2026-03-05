@@ -179,9 +179,35 @@ esac
 # Record reconciliation timestamp
 date -Iseconds > "$LAST_REC_FILE"
 
-# Extract open findings into .dev/FINDINGS.md (tracked, read by next session)
+# Archive resolved findings to .dev/learnings/ before overwriting
 FINDINGS_FILE="$REPO_ROOT/.dev/FINDINGS.md"
+LEARNINGS_DIR="$REPO_ROOT/.dev/learnings"
+mkdir -p "$LEARNINGS_DIR"
 
+if [ -f "$FINDINGS_FILE" ]; then
+  # Map finding sections to learnings category files
+  for section_map in "Test Gaps:test-gaps" "Doc Updates Needed:doc-updates" "Decisions to Document:decisions"; do
+    SECTION_NAME="${section_map%%:*}"
+    CATEGORY_FILE="${section_map##*:}"
+    LEARNINGS_FILE="$LEARNINGS_DIR/${CATEGORY_FILE}.md"
+
+    # Extract checked items (resolved findings) from current FINDINGS.md
+    RESOLVED=$(sed -n "/^## $SECTION_NAME/,/^## /{ /^- \[x\]/p; }" "$FINDINGS_FILE" 2>/dev/null || true)
+    if [ -n "$RESOLVED" ]; then
+      # Create learnings file with header if new
+      if [ ! -f "$LEARNINGS_FILE" ]; then
+        echo "# Learnings: $SECTION_NAME" > "$LEARNINGS_FILE"
+        echo "" >> "$LEARNINGS_FILE"
+      fi
+      # Append resolved items with date
+      echo "### $DATE" >> "$LEARNINGS_FILE"
+      echo "$RESOLVED" | sed 's/- \[x\]/- /' >> "$LEARNINGS_FILE"
+      echo "" >> "$LEARNINGS_FILE"
+    fi
+  done
+fi
+
+# Extract open findings into .dev/FINDINGS.md (tracked, read by next session)
 cat > "$FINDINGS_TMP" << FEOF
 # Open Findings
 

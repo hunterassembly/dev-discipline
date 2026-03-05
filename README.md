@@ -115,7 +115,7 @@ The reconciliation skill audits recent commits and produces a report covering:
 - Undocumented architectural decisions
 - Hook bypass detection (commits missing diary entries)
 
-Open findings get extracted to `.dev/FINDINGS.md` — a tracked file that agents read at the start of their next session. This closes the feedback loop.
+Open findings get extracted to `.dev/FINDINGS.md` — a tracked file that agents read at the start of their next session. When findings are resolved (checked off), the next reconciliation archives them to `.dev/learnings/` as institutional memory — category files (`test-gaps.md`, `doc-updates.md`, `decisions.md`) that accumulate over time and agents scan before starting work.
 
 ### Through plans (planner)
 
@@ -157,6 +157,7 @@ See [`docs/refs/hook-config.md`](docs/refs/hook-config.md) for the full referenc
 | `.dev/decisions/` | Yes | Architectural decision records |
 | `.dev/WORKLOG.md` | Yes | Project worklog |
 | `.dev/FINDINGS.md` | Yes | Open items from last reconciliation |
+| `.dev/learnings/` | Yes | Archived resolved findings (institutional memory) |
 | `.dev/diary/` | No | Auto-generated commit diary (local) |
 | `.dev/.last-reconciliation` | No | Reconciliation timestamp (local) |
 

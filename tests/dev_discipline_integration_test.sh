@@ -315,6 +315,37 @@ test_pre_commit_does_not_overwrite_existing_plan() {
     || fail "pre-commit does not overwrite existing plan"
 }
 
+test_setup_creates_learnings_directory() {
+  local tmp_home tmp_repo
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  if [ -d "$tmp_repo/.dev/learnings" ]; then
+    pass "setup creates .dev/learnings/ directory"
+  else
+    fail "setup creates .dev/learnings/ directory"
+  fi
+}
+
+test_reconcile_script_archives_resolved_findings() {
+  if grep -q "learnings" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh" \
+    && grep -q "RESOLVED" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh"; then
+    pass "reconcile.sh archives resolved findings to learnings"
+  else
+    fail "reconcile.sh archives resolved findings to learnings"
+  fi
+}
+
+test_contract_has_protected_artifacts_rule() {
+  if grep -q "Never delete or suggest removing" "$REPO_ROOT/skills/dev-discipline/assets/contract.md"; then
+    pass "contract.md has protected artifacts rule"
+  else
+    fail "contract.md has protected artifacts rule"
+  fi
+}
+
 test_bootstrap_installs_planner_and_scaffold
 test_pre_commit_blocks_large_source_change_without_plan_update
 test_planner_validator_checks_quality_rules
@@ -328,6 +359,9 @@ test_reconcile_script_references_findings
 test_pre_commit_scaffolds_plan_on_block
 test_pre_commit_scaffolds_plan_with_timestamp_on_main
 test_pre_commit_does_not_overwrite_existing_plan
+test_setup_creates_learnings_directory
+test_reconcile_script_archives_resolved_findings
+test_contract_has_protected_artifacts_rule
 
 echo ""
 echo "Test results: $PASS_COUNT passed, $FAIL_COUNT failed"
