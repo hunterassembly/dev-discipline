@@ -346,6 +346,67 @@ test_contract_has_protected_artifacts_rule() {
   fi
 }
 
+test_post_commit_tags_agent_id() {
+  local tmp_home tmp_repo diary_content
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    echo "test" > testfile.txt
+    git add testfile.txt
+    AGENT_ID=test-agent-42 git commit --no-verify -m "$(printf 'feat(x): test agent tagging\n\nwhy: verifying agent identity appears in diary entries')" >/dev/null 2>&1
+  )
+
+  diary_file=$(ls "$tmp_repo/.dev/diary/"*.md 2>/dev/null | head -1)
+  if [ -n "$diary_file" ] && grep -q "test-agent-42" "$diary_file"; then
+    pass "post-commit tags diary entry with AGENT_ID"
+  else
+    fail "post-commit tags diary entry with AGENT_ID"
+  fi
+}
+
+test_post_commit_no_tag_without_agent_id() {
+  local tmp_home tmp_repo diary_content
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    echo "test" > testfile.txt
+    git add testfile.txt
+    unset AGENT_ID
+    git commit --no-verify -m "$(printf 'feat(x): test no agent tag\n\nwhy: verifying no agent tag when AGENT_ID is unset')" >/dev/null 2>&1
+  )
+
+  diary_file=$(ls "$tmp_repo/.dev/diary/"*.md 2>/dev/null | head -1)
+  if [ -n "$diary_file" ] && ! grep -q "\[agent:" "$diary_file"; then
+    pass "post-commit omits agent tag when AGENT_ID unset"
+  else
+    fail "post-commit omits agent tag when AGENT_ID unset"
+  fi
+}
+
+test_reconcile_branch_script_exists() {
+  if [ -x "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile-branch.sh" ]; then
+    pass "reconcile-branch.sh exists and is executable"
+  else
+    fail "reconcile-branch.sh exists and is executable"
+  fi
+}
+
+test_orchestrator_skill_exists() {
+  if [ -f "$REPO_ROOT/skills/orchestrator/SKILL.md" ] && grep -q "AGENT_ID" "$REPO_ROOT/skills/orchestrator/SKILL.md"; then
+    pass "orchestrator skill exists with AGENT_ID guidance"
+  else
+    fail "orchestrator skill exists with AGENT_ID guidance"
+  fi
+}
+
 test_bootstrap_installs_planner_and_scaffold
 test_pre_commit_blocks_large_source_change_without_plan_update
 test_planner_validator_checks_quality_rules
@@ -362,6 +423,10 @@ test_pre_commit_does_not_overwrite_existing_plan
 test_setup_creates_learnings_directory
 test_reconcile_script_archives_resolved_findings
 test_contract_has_protected_artifacts_rule
+test_post_commit_tags_agent_id
+test_post_commit_no_tag_without_agent_id
+test_reconcile_branch_script_exists
+test_orchestrator_skill_exists
 
 echo ""
 echo "Test results: $PASS_COUNT passed, $FAIL_COUNT failed"

@@ -28,7 +28,7 @@ cat >> "$DIARY_FILE" << EOF
 
 ---
 
-## $TIME — \`$HASH\` ($AUTHOR)
+## $TIME — \`$HASH\` ($AUTHOR)${AGENT_ID:+ [agent: $AGENT_ID]}
 
 **Message:**
 $MSG

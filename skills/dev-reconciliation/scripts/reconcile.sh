@@ -208,10 +208,15 @@ if [ -f "$FINDINGS_FILE" ]; then
 fi
 
 # Extract open findings into .dev/FINDINGS.md (tracked, read by next session)
+AGENT_TAG=""
+if [ -n "${AGENT_ID:-}" ]; then
+  AGENT_TAG=" (agent: $AGENT_ID)"
+fi
+
 cat > "$FINDINGS_TMP" << FEOF
 # Open Findings
 
-Last updated: $DATE from reconciliation-$DATE.md
+Last updated: $DATE from reconciliation-$DATE.md${AGENT_TAG}
 
 FEOF
 
