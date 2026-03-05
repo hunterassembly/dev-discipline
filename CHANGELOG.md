@@ -9,6 +9,9 @@
 - Added protected artifacts rule: agents must never delete files in `.dev/`, `docs/plans/`, or `docs/decisions/`.
 - Added learnings system: resolved findings archived to `.dev/learnings/` category files as institutional memory.
 - Added `.dev/learnings/` to setup scaffolding and session-start checklist.
+- Added multi-agent orchestrator support: `AGENT_ID` env var tags diary entries and findings.
+- Added `reconcile-branch.sh` merge-gate script for branch-scoped reconciliation.
+- Added `orchestrator` skill with coordination contract for multi-agent systems.
 - Added `bootstrap-harness.sh` to scaffold AGENTS/docs/evals for harness-engineering workflows.
 - Added `new-project-bootstrap.sh` for one-command skill install + repo setup.
 - Added `.agent/PLANS.md` execution-plan standard aligned with Codex Exec Plans.

@@ -58,6 +58,7 @@ Four skills that work as a pipeline:
 | **planner** | Execution plan validation. Non-trivial work requires a living plan with progress tracking. |
 | **dev-diary** | Automatic commit log. Post-commit hook writes entries; the skill summarizes and navigates them. |
 | **dev-reconciliation** | End-of-session audit. Reviews all commits for atomicity, test gaps, doc staleness. Writes findings to `.dev/FINDINGS.md` for the next session. |
+| **orchestrator** | Coordination contract for multi-agent systems (Symphony, Codex, etc.). Defines branching, identity, and merge protocol. |
 
 ## Quick Start
 
@@ -148,6 +149,18 @@ See [`docs/refs/hook-config.md`](docs/refs/hook-config.md) for the full referenc
 | `scripts/test.sh` | Run integration tests |
 | `scripts/planner docs/plans/active/<plan>.md` | Validate plan format |
 | `scripts/validate-architecture.sh` | Validate ARCHITECTURE.md |
+| `scripts/reconcile-branch.sh <branch>` | Branch merge-gate reconciliation |
+
+## Multi-Agent Support
+
+Dev-discipline works with multi-agent orchestrators like [Symphony](https://github.com/openai/symphony) out of the box. The approach is branch-native:
+
+1. **Each agent gets its own branch** — `agent/<agent-id>/<concern>`
+2. **Set `AGENT_ID` env var** — diary entries and findings get tagged for attribution
+3. **Merge gate** — run `scripts/reconcile-branch.sh` before merging to audit the branch
+4. **Read the orchestrator skill** — `skills/orchestrator/SKILL.md` defines the coordination contract
+
+Single-agent users change nothing. The multi-agent features activate only when `AGENT_ID` is set and branches are used.
 
 ## What Gets Committed?
 
@@ -176,6 +189,7 @@ Removes hooks and bridge references from AGENTS.md/CLAUDE.md. Does not delete `.
 - **Keep hooks dumb and fast.** No AI calls in hooks. Shell only. Save AI for reconciliation.
 - **The diary writes itself.** Post-commit logs metadata. AI summarizes later.
 - **Feedback loops close.** Reconciliation findings feed into the next session automatically.
+- **Multi-agent is just git.** Branches isolate, merges synchronize, hooks enforce per-branch. No coordination layer needed.
 
 ## License
 
