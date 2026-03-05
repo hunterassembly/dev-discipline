@@ -79,7 +79,8 @@ echo "🔍 Reconciling $COMMIT_COUNT commits since $SINCE"
 # Truncate diffs to MAX_DIFF_BYTES
 DIFF_TMP=$(mktemp)
 DIARY_AGG_TMP=$(mktemp)
-trap 'rm -f "$DIFF_TMP" "$DIARY_AGG_TMP"' EXIT
+FINDINGS_TMP=$(mktemp)
+trap 'rm -f "$DIFF_TMP" "$DIARY_AGG_TMP" "$FINDINGS_TMP"' EXIT
 
 git log --since="$SINCE" -p --stat > "$DIFF_TMP" 2>/dev/null || true
 DIFFS=$(head -c "$MAX_DIFF_BYTES" "$DIFF_TMP")
@@ -177,6 +178,39 @@ esac
 
 # Record reconciliation timestamp
 date -Iseconds > "$LAST_REC_FILE"
+
+# Extract open findings into .dev/FINDINGS.md (tracked, read by next session)
+FINDINGS_FILE="$REPO_ROOT/.dev/FINDINGS.md"
+
+cat > "$FINDINGS_TMP" << FEOF
+# Open Findings
+
+Last updated: $DATE from reconciliation-$DATE.md
+
+FEOF
+
+# Extract sections from the reconciliation report
+for section in "Test Gaps" "Doc Updates Needed" "Decisions to Document"; do
+  SECTION_CONTENT=$(sed -n "/^## $section/,/^## /{ /^## $section/d; /^## /d; p; }" "$OUTPUT" 2>/dev/null | sed '/^$/d' || true)
+  if [ -n "$SECTION_CONTENT" ]; then
+    printf "## %s\n%s\n\n" "$section" "$SECTION_CONTENT" >> "$FINDINGS_TMP"
+  fi
+done
+
+# Only write if there are actual findings (more than just the header)
+FINDINGS_LINE_COUNT=$(wc -l < "$FINDINGS_TMP" | tr -d ' ')
+if [ "$FINDINGS_LINE_COUNT" -gt 4 ]; then
+  cp "$FINDINGS_TMP" "$FINDINGS_FILE"
+  echo "📋 Open findings written to .dev/FINDINGS.md"
+else
+  # No findings — clear the file if it exists
+  if [ -f "$FINDINGS_FILE" ]; then
+    echo "# Open Findings" > "$FINDINGS_FILE"
+    echo "" >> "$FINDINGS_FILE"
+    echo "No open findings as of $DATE." >> "$FINDINGS_FILE"
+    echo "✅ No open findings — .dev/FINDINGS.md cleared"
+  fi
+fi
 
 echo ""
 echo "✅ Reconciliation report saved to $OUTPUT"

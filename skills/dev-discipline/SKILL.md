@@ -26,11 +26,12 @@ You are working in a project that enforces coding discipline. Follow these rules
 1. Run `scripts/setup.sh` if git hooks aren't installed yet (check: `.git/hooks/pre-commit` should be a symlink or contain dev-discipline logic)
    - setup also bootstraps missing harness docs/evals via `scripts/bootstrap-harness.sh`
 2. Read the worklog if one exists: `.dev/WORKLOG.md`
-3. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
-4. Understand what you're about to change and why before writing code
-5. For longer tasks, create or update an active plan under `docs/plans/active/`
-6. For non-trivial implementation, follow `.agent/PLANS.md` and use the full execution-plan structure in `docs/plans/active/plan-template.md`
-7. Keep plan template synced from canonical planner template:
+3. Check `.dev/FINDINGS.md` for open items from previous reconciliation. Address open items before starting new work.
+4. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
+5. Understand what you're about to change and why before writing code
+6. For longer tasks, create or update an active plan under `docs/plans/active/`
+7. For non-trivial implementation, follow `.agent/PLANS.md` and use the full execution-plan structure in `docs/plans/active/plan-template.md`
+8. Keep plan template synced from canonical planner template:
    - `scripts/sync-plan-template.sh --check`
 
 ## Commit Rules

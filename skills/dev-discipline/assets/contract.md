@@ -29,6 +29,7 @@ Before writing any code, read and follow these rules.
 
 ## Process
 
+0. **Check** — Read `.dev/FINDINGS.md` if it exists. Resolve open items first.
 1. **Think** — Plan what you'll change
 2. **Change** — Make the minimal change
 3. **Test** — Verify it works
