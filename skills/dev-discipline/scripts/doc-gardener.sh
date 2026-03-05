@@ -67,12 +67,14 @@ if [ -z "$CHANGED_FILES" ]; then
   DOC_COUNT=0
   PLAN_COUNT=0
   DECISION_COUNT=0
+  EVAL_COUNT=0
 else
   SOURCE_COUNT=$(printf "%s\n" "$CHANGED_FILES" | grep -E '\.(ts|tsx|js|jsx|py|rb|go|rs|java|swift|kt|m|mm|c|cc|cpp|h)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' | wc -l | tr -d ' ' || true)
   TEST_COUNT=$(printf "%s\n" "$CHANGED_FILES" | grep -Ei '(test|spec|_test|\.test\.|\.spec\.)' | wc -l | tr -d ' ' || true)
   DOC_COUNT=$(printf "%s\n" "$CHANGED_FILES" | grep -E '(^docs/|README\.md$|CHANGELOG\.md$|\.md$)' | wc -l | tr -d ' ' || true)
   PLAN_COUNT=$(printf "%s\n" "$CHANGED_FILES" | grep -E '^docs/plans/' | wc -l | tr -d ' ' || true)
   DECISION_COUNT=$(printf "%s\n" "$CHANGED_FILES" | grep -E '^\.dev/decisions/' | wc -l | tr -d ' ' || true)
+  EVAL_COUNT=$(printf "%s\n" "$CHANGED_FILES" | grep -E '^evals/' | wc -l | tr -d ' ' || true)
 fi
 
 if [ "$SOURCE_COUNT" -eq 0 ]; then
@@ -96,7 +98,13 @@ else
   DECISION_SIGNAL=100
 fi
 
-OVERALL=$(((DOC_COVERAGE + PLAN_HYGIENE + DECISION_SIGNAL) / 3))
+if [ "$SOURCE_COUNT" -gt 0 ] && [ "$EVAL_COUNT" -eq 0 ]; then
+  EVAL_SIGNAL=70
+else
+  EVAL_SIGNAL=100
+fi
+
+OVERALL=$(((DOC_COVERAGE + PLAN_HYGIENE + DECISION_SIGNAL + EVAL_SIGNAL) / 4))
 
 {
   echo "---"
@@ -115,6 +123,7 @@ OVERALL=$(((DOC_COVERAGE + PLAN_HYGIENE + DECISION_SIGNAL) / 3))
   echo "- Docs files changed: $DOC_COUNT"
   echo "- Plan files changed: $PLAN_COUNT"
   echo "- Decision files changed: $DECISION_COUNT"
+  echo "- Eval files changed: $EVAL_COUNT"
   echo
   echo "## Quality Snapshot"
   echo
@@ -122,6 +131,7 @@ OVERALL=$(((DOC_COVERAGE + PLAN_HYGIENE + DECISION_SIGNAL) / 3))
   echo "- Docs coverage signal: **$DOC_COVERAGE/100**"
   echo "- Plan hygiene signal: **$PLAN_HYGIENE/100**"
   echo "- Decision log signal: **$DECISION_SIGNAL/100**"
+  echo "- Eval coverage signal: **$EVAL_SIGNAL/100**"
   echo
   echo "## Checklist"
   echo
@@ -144,6 +154,12 @@ OVERALL=$(((DOC_COVERAGE + PLAN_HYGIENE + DECISION_SIGNAL) / 3))
     echo "- [x] Decision records updated or not needed in this range."
   fi
 
+  if [ "$SOURCE_COUNT" -gt 0 ] && [ "$EVAL_COUNT" -eq 0 ]; then
+    echo "- [ ] No eval updates detected under \`evals/\`. Add or update eval cases/rubrics for new behavior."
+  else
+    echo "- [x] Eval artifacts updated or not needed in this range."
+  fi
+
   if [ "$DOCS_LIST_OK" = false ]; then
     echo "- [ ] \`docs-list\` checks failed. Fix docs front matter before handoff."
   else
@@ -157,7 +173,7 @@ OVERALL=$(((DOC_COVERAGE + PLAN_HYGIENE + DECISION_SIGNAL) / 3))
 } > "$REPORT_PATH"
 
 echo "✅ Doc gardener report written to $REPORT_PATH"
-echo "Snapshot: overall=$OVERALL docs=$DOC_COVERAGE plan=$PLAN_HYGIENE decision=$DECISION_SIGNAL"
+echo "Snapshot: overall=$OVERALL docs=$DOC_COVERAGE plan=$PLAN_HYGIENE decision=$DECISION_SIGNAL eval=$EVAL_SIGNAL"
 
 if [ "$DOCS_LIST_OK" = false ]; then
   echo ""

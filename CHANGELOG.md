@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Added `bootstrap-harness.sh` to scaffold AGENTS/docs/evals for harness-engineering workflows.
+- Added `new-project-bootstrap.sh` for one-command skill install + repo setup.
+- Added `.agent/PLANS.md` execution-plan standard aligned with Codex Exec Plans.
+- Added pre-commit enforcement for execution-plan updates on significant source changes.
+- Added pre-commit validation of required execution-plan sections in updated plan files.
+- Added `planner` skill with standalone `validate-plan.sh` checker.
+- Added `/planner` alias command and kept `scripts/validate-exec-plan.sh` as compatibility wrapper.
+- Updated `new-project-bootstrap.sh` to install all bundled skills automatically.
+- Added local integration test suite for hooks/scripts (`tests/` + `scripts/test.sh`).
+- Added CI workflow (`.github/workflows/quality.yml`) for syntax, docs, planner, and integration checks.
+- Added canonical planner template sync workflow (`scripts/sync-plan-template.sh`) to prevent template drift.
+- Added configurable pre-commit thresholds via `.dev/discipline.env` + `.dev/discipline.env.example`.
+- Added `migrate-planner.sh` to migrate legacy `exec-plan-discipline` references and directories.
+- Expanded planner validation for section quality, acceptance checks, and recovery strategy content.
+- Added one-shot `health-check.sh` command for the full local quality loop.
+- Updated setup flow to run harness bootstrap automatically (safe, create-missing-only).
+- Fixed setup/teardown git-root detection to fail with clear messaging outside repositories.
+- Clarified user-scoped setup command path in README (`~/.agents/...`).
+- Added `ARCHITECTURE.md` scaffold and `docs/refs/architecture-approach.md` to align with matklad-style architecture mapping.
+- Added architecture validation command (`scripts/validate-architecture.sh`, alias: `scripts/architecture`) and planner-side `validate-architecture.sh`.
+- Added `/architecture` playbook and architecture checks in local/CI quality loops.
+- Added pre-commit architecture-impact warning thresholds for broad source changes without `ARCHITECTURE.md` updates.
+- Added eval coverage signal to `doc-gardener` quality snapshots.
 - Added portable `scripts/docs-list.sh` for docs front-matter validation.
 - Added optional `scripts/committer` helper for explicit-file commits.
 - Added reusable slash-command docs (`/reconcile`, `/handoff`, `/pickup`).

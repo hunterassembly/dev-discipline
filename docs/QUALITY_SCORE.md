@@ -14,7 +14,8 @@ Update it from local audits (for example `scripts/doc-gardener.sh` and reconcili
 - **Docs coverage signal (0-100):** documentation updates relative to source changes
 - **Plan hygiene signal (0-100):** whether active plan artifacts are maintained for in-flight work
 - **Decision signal (0-100):** whether architecture-impacting changes are logged in decision records
-- **Overall score (0-100):** average of the three signals
+- **Eval coverage signal (0-100):** whether behavior-changing work is accompanied by eval updates
+- **Overall score (0-100):** average of the four signals
 
 ## Interpretation
 
@@ -30,9 +31,10 @@ Update it from local audits (for example `scripts/doc-gardener.sh` and reconcili
 - Docs coverage: _n/a_
 - Plan hygiene: _n/a_
 - Decision signal: _n/a_
+- Eval coverage: _n/a_
 - Source report: _n/a_
 
 ## Run History
 
-| Date | Overall | Docs | Plans | Decisions | Source Report |
-|------|---------|------|-------|-----------|---------------|
+| Date | Overall | Docs | Plans | Decisions | Evals | Source Report |
+|------|---------|------|-------|-----------|-------|---------------|

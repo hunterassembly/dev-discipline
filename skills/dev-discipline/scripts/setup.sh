@@ -5,8 +5,8 @@ set -euo pipefail
 # Installs git hooks and creates required directories.
 # Run from the project root (or any directory inside the git repo).
 
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-if [ -z "$REPO_ROOT" ]; then
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -z "${REPO_ROOT:-}" ]; then
   echo "❌ Not inside a git repository."
   exit 1
 fi
@@ -50,6 +50,12 @@ if [ -f "$CONTRACT_SRC" ]; then
   echo "✅ Installed .dev/contract.md"
 else
   echo "⚠️  No contract.md asset found, skipping"
+fi
+
+CONFIG_EXAMPLE_SRC="$SKILL_DIR/assets/discipline.env.example"
+if [ -f "$CONFIG_EXAMPLE_SRC" ] && [ ! -f "$DEV_DIR/discipline.env.example" ]; then
+  cp "$CONFIG_EXAMPLE_SRC" "$DEV_DIR/discipline.env.example"
+  echo "✅ Installed .dev/discipline.env.example"
 fi
 
 # Install hooks as symlinks (so submodule updates propagate automatically)
@@ -126,9 +132,23 @@ else
   echo "✅ .gitignore already has local dev discipline paths"
 fi
 
+# Bootstrap harness-engineering docs/eval scaffolding for new or overhauled repos.
+HARNESS_BOOTSTRAP="$SKILL_DIR/scripts/bootstrap-harness.sh"
+if [ -x "$HARNESS_BOOTSTRAP" ]; then
+  if "$HARNESS_BOOTSTRAP"; then
+    echo "✅ Harness engineering scaffolding verified"
+  else
+    echo "⚠️  Harness scaffold step failed; continuing with hook setup"
+  fi
+else
+  echo "⚠️  Harness scaffold script not found or not executable, skipping"
+fi
+
 # Bridge into AGENTS.md (for Codex CLI and other AGENTS.md-aware tools)
 AGENTS_FILE="$REPO_ROOT/AGENTS.md"
 BRIDGE_LINE="Before any code changes, read \`.dev/contract.md\` and follow its rules."
+EXEC_PLAN_LINE="For non-trivial tasks, follow \`.agent/PLANS.md\` and keep a living plan in \`docs/plans/active/\`."
+ARCH_LINE="Use \`ARCHITECTURE.md\` as the high-level map and keep it updated when architecture changes."
 if [ -f "$AGENTS_FILE" ]; then
   if ! grep -qF '.dev/contract.md' "$AGENTS_FILE" 2>/dev/null; then
     echo "" >> "$AGENTS_FILE"
@@ -138,6 +158,20 @@ if [ -f "$AGENTS_FILE" ]; then
     echo "✅ Added contract reference to AGENTS.md"
   else
     echo "✅ AGENTS.md already references contract"
+  fi
+
+  if ! grep -qF '.agent/PLANS.md' "$AGENTS_FILE" 2>/dev/null; then
+    echo "$EXEC_PLAN_LINE" >> "$AGENTS_FILE"
+    echo "✅ Added execution-plan reference to AGENTS.md"
+  else
+    echo "✅ AGENTS.md already references execution plans"
+  fi
+
+  if ! grep -qF 'ARCHITECTURE.md' "$AGENTS_FILE" 2>/dev/null; then
+    echo "$ARCH_LINE" >> "$AGENTS_FILE"
+    echo "✅ Added architecture reference to AGENTS.md"
+  else
+    echo "✅ AGENTS.md already references architecture map"
   fi
 fi
 

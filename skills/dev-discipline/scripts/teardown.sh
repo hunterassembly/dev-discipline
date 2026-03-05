@@ -4,8 +4,8 @@ set -euo pipefail
 # Dev Discipline — Teardown Script
 # Removes hooks and bridge references. Does NOT delete .dev/ (your data).
 
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-if [ -z "$REPO_ROOT" ]; then
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -z "${REPO_ROOT:-}" ]; then
   echo "❌ Not inside a git repository."
   exit 1
 fi
@@ -52,6 +52,10 @@ if [ -f "$AGENTS_FILE" ] && grep -qF '.dev/contract.md' "$AGENTS_FILE" 2>/dev/nu
   # Remove the Dev Discipline section (header + blank line + bridge line)
   sed -i '' '/^## Dev Discipline$/,/\.dev\/contract\.md/d' "$AGENTS_FILE" 2>/dev/null || \
   sed -i '/^## Dev Discipline$/,/\.dev\/contract\.md/d' "$AGENTS_FILE" 2>/dev/null || true
+  sed -i '' '/\.agent\/PLANS\.md/d' "$AGENTS_FILE" 2>/dev/null || \
+  sed -i '/\.agent\/PLANS\.md/d' "$AGENTS_FILE" 2>/dev/null || true
+  sed -i '' '/ARCHITECTURE\.md/d' "$AGENTS_FILE" 2>/dev/null || \
+  sed -i '/ARCHITECTURE\.md/d' "$AGENTS_FILE" 2>/dev/null || true
   # Clean up trailing blank lines
   sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$AGENTS_FILE" 2>/dev/null || true
   echo "✅ Removed contract reference from AGENTS.md"

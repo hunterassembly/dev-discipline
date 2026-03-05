@@ -41,16 +41,28 @@ cp -r skills/* ~/.agents/skills/
 
 ### Setup
 
+Fastest path for a brand-new or overhauled repo:
+
+```bash
+./scripts/new-project-bootstrap.sh
+```
+
+This installs/updates skills into `~/.agents/skills` and runs setup in the current repo.
+Use `./scripts/new-project-bootstrap.sh --init-git /path/to/repo` to initialize git automatically.
+
+Manual path:
+
 Run the setup script to install git hooks:
 
 ```bash
-.agents/skills/dev-discipline/scripts/setup.sh
+~/.agents/skills/dev-discipline/scripts/setup.sh
 ```
 
 This will:
 - Install pre-commit, commit-msg, and post-commit hooks
 - Create `.dev/diary/`, `.dev/decisions/`, and `.dev/WORKLOG.md`
 - Add `.dev/diary/` and `.dev/.last-reconciliation` to `.gitignore`
+- Scaffold missing harness-engineering artifacts (`AGENTS.md`, `.agent/PLANS.md`, docs skeleton, evals skeleton)
 
 Optional helper scripts (repo root):
 
@@ -58,15 +70,37 @@ Optional helper scripts (repo root):
 ./scripts/docs-list.sh     # Validate docs front matter + list docs
 ./scripts/committer "fix: ..." path/to/file path/to/other
 ./scripts/doc-gardener.sh  # Generate local docs/plan drift report + score snapshot
+./scripts/bootstrap-harness.sh # Scaffold AGENTS/docs/evals (safe to re-run)
+./scripts/planner docs/plans/active/<plan>.md # Validate plan format
+./scripts/sync-plan-template.sh --check # Detect drift from canonical planner template
+./scripts/health-check.sh --since "24 hours ago" --skip-reconcile # One-shot local quality loop
+./scripts/migrate-planner.sh # Migrate legacy exec-plan-discipline refs to planner
+./scripts/validate-architecture.sh ARCHITECTURE.md # Validate architecture map headings/content
+./scripts/architecture ARCHITECTURE.md # Alias for architecture validation
+./scripts/test.sh # Run integration tests for hooks/scripts
+./scripts/new-project-bootstrap.sh # Install skills + run setup in one command
 ```
 
 If you only installed `skills/*`, run helpers from the skill path:
 
 ```bash
-.agents/skills/dev-discipline/scripts/docs-list.sh
-.agents/skills/dev-discipline/scripts/committer "fix: ..." path/to/file
-.agents/skills/dev-discipline/scripts/doc-gardener.sh --since "24 hours ago"
+~/.agents/skills/dev-discipline/scripts/docs-list.sh
+~/.agents/skills/dev-discipline/scripts/committer "fix: ..." path/to/file
+~/.agents/skills/dev-discipline/scripts/doc-gardener.sh --since "24 hours ago"
+~/.agents/skills/dev-discipline/scripts/bootstrap-harness.sh
 ```
+
+### Harness Quickstart
+
+For a new or overhauled repo, run this loop:
+
+1. `~/.agents/skills/dev-discipline/scripts/setup.sh`
+2. `~/.agents/skills/dev-discipline/scripts/docs-list.sh`
+3. `~/.agents/skills/dev-discipline/scripts/doc-gardener.sh --since "24 hours ago"`
+4. `~/.agents/skills/dev-reconciliation/scripts/reconcile.sh --since "24 hours ago"`
+5. `/planner` (or `./scripts/planner docs/plans/active/<plan>.md`)
+6. `/architecture` (or `./scripts/validate-architecture.sh ARCHITECTURE.md`)
+7. `./scripts/health-check.sh --since "24 hours ago"`
 
 ## Skills
 
@@ -78,11 +112,17 @@ The core discipline contract. Activates on any code change task.
 - Conventional commit messages with `why:` lines
 - Test coverage for behavioral changes
 - No debug artifacts in commits
+- Execution-plan discipline for non-trivial work (Codex Exec Plans format)
 
 **Git hooks:**
 - `pre-commit` — Warns on large commits, missing tests, debug statements, conflict markers
+- `pre-commit` — Requires execution-plan updates for significant source changes and validates required plan sections
 - `commit-msg` — Blocks non-conventional messages, requires `why:` line
 - `post-commit` — Auto-appends diary entry (timestamp, hash, files, stats)
+
+Hook tuning:
+- Copy `.dev/discipline.env.example` to `.dev/discipline.env` to adjust pre-commit thresholds.
+- See `docs/refs/hook-config.md` for variable reference.
 
 ### `dev-diary`
 Reviews and navigates the auto-generated commit diary.
@@ -108,6 +148,22 @@ End-of-session audit agent.
 .agents/skills/dev-reconciliation/scripts/reconcile.sh --since "8 hours ago"
 ```
 
+### `planner`
+Enforces Codex Exec Plans structure for implementation plans and architecture-impact hygiene.
+
+**Can:**
+- Validate required execution-plan sections
+- Require user-benefit narratives for concrete steps
+- Check progress checklist hygiene
+- Catch malformed plans before commit
+- Validate `ARCHITECTURE.md` structure when architecture changes are involved
+
+**Run standalone:**
+```bash
+~/.agents/skills/planner/scripts/validate-plan.sh docs/plans/active/<plan>.md
+~/.agents/skills/planner/scripts/validate-architecture.sh ARCHITECTURE.md
+```
+
 ## Shell Tips Alignment
 
 This repo now incorporates several patterns from the OpenAI skills + shell guidance:
@@ -116,7 +172,7 @@ This repo now incorporates several patterns from the OpenAI skills + shell guida
 - **Template-backed outputs**: report and standup templates live inside skill directories so agents can produce consistent output quickly
 - **Edge-case handling in shell scripts**: reconciliation handles no-commit ranges safely and checks diary coverage across all dates in range
 - **More explicit local state handling**: setup now ignores `.dev/.last-reconciliation` by default
-- **Portable workflow playbooks**: slash-command docs (`reconcile`, `handoff`, `pickup`) are reusable in any project
+- **Portable workflow playbooks**: slash-command docs (`planner`, `architecture`, `reconcile`, `handoff`, `pickup`) are reusable in any project
 - **Docs hygiene checks**: `scripts/docs-list.sh` enforces `summary` and `read_when` in docs front matter
 - **Safer commit workflow**: optional `scripts/committer` stages only explicitly listed files
 - **Local docs drift loop**: `scripts/doc-gardener.sh` creates a checklist report and quality snapshot
@@ -136,8 +192,10 @@ For a local-first quality pass (no GitHub Actions required):
 
 1. `./scripts/docs-list.sh`
 2. `./scripts/doc-gardener.sh --since "24 hours ago"`
-3. `.agents/skills/dev-reconciliation/scripts/reconcile.sh --since "24 hours ago"`
-4. Update `docs/QUALITY_SCORE.md` from the latest local reports
+3. `./scripts/planner docs/plans/active/<plan>.md` (for active initiatives)
+4. `./scripts/validate-architecture.sh ARCHITECTURE.md`
+5. `.agents/skills/dev-reconciliation/scripts/reconcile.sh --since "24 hours ago"`
+6. Update `docs/QUALITY_SCORE.md` from the latest local reports
 
 ## AGENTS.md Checklist
 
@@ -149,6 +207,8 @@ It is designed as a fast pass/fail rubric for safety, workflow clarity, tooling,
 Reusable workflow playbooks live in:
 
 - `docs/slash-commands/README.md`
+- `docs/slash-commands/planner.md`
+- `docs/slash-commands/architecture.md`
 - `docs/slash-commands/reconcile.md`
 - `docs/slash-commands/handoff.md`
 - `docs/slash-commands/pickup.md`
@@ -179,6 +239,7 @@ Removes hooks, bridge references from AGENTS.md/CLAUDE.md, and Claude Code rules
 - **Warn, don't block** (mostly). Pre-commit warnings don't kill flow. Commit-msg errors do block — bad messages are never worth it.
 - **Keep hooks dumb and fast.** No AI calls in hooks. Save AI for reconciliation.
 - **Dev diary writes itself.** Post-commit hook logs metadata. AI summarizes later.
+- **Plans are living docs.** Non-trivial implementation follows execution-plan workflow.
 - **Agent-agnostic.** Works with Codex, Claude Code, or any tool that runs git.
 
 ## Structure
@@ -191,6 +252,10 @@ skills/
 │   │   └── decision-record.md # ADR-style decision template
 │   ├── scripts/
 │   │   ├── setup.sh          # Install hooks, create dirs
+│   │   ├── bootstrap-harness.sh # Scaffold AGENTS/docs/evals
+│   │   ├── sync-plan-template.sh # Sync docs plan template from canonical planner template
+│   │   ├── health-check.sh   # One-shot local quality loop
+│   │   ├── migrate-planner.sh # Migrate legacy planner references
 │   │   ├── teardown.sh       # Uninstall hooks + bridges
 │   │   ├── docs-list.sh      # Docs index + front-matter checks
 │   │   ├── committer         # Explicit-file commit helper
@@ -198,11 +263,19 @@ skills/
 │   └── assets/
 │       ├── pre-commit         # Diff analysis, test check
 │       ├── commit-msg         # Conventional commit enforcement
-│       └── post-commit        # Dev diary auto-append
+│       ├── post-commit        # Dev diary auto-append
+│       └── discipline.env.example # Optional hook-threshold config template
 ├── dev-diary/
 │   ├── SKILL.md              # Diary review + navigation
 │   └── templates/
 │       └── standup-update.md  # Daily update format
+├── planner/
+│   ├── SKILL.md              # Codex Exec Plans compliance skill
+│   ├── templates/
+│   │   └── exec-plan.md       # Execution-plan template
+│   └── scripts/
+│       ├── validate-plan.sh   # Required-section validator
+│       └── validate-architecture.sh # ARCHITECTURE.md section/content validator
 └── dev-reconciliation/
     ├── SKILL.md              # Reconciliation agent instructions
     ├── templates/
@@ -213,17 +286,32 @@ skills/
 scripts/
 ├── docs-list.sh              # Wrapper to dev-discipline docs-list
 ├── committer                 # Wrapper to dev-discipline committer
-└── doc-gardener.sh           # Wrapper to dev-discipline doc-gardener
+├── doc-gardener.sh           # Wrapper to dev-discipline doc-gardener
+├── bootstrap-harness.sh      # Wrapper to scaffold AGENTS/docs/evals
+├── validate-exec-plan.sh     # Backward-compatible wrapper to plan validator
+├── planner                   # Alias command for plan validation
+├── validate-architecture.sh  # Wrapper to architecture validator
+├── architecture              # Alias command for architecture validation
+├── sync-plan-template.sh     # Keep docs plan template synced with canonical planner template
+├── health-check.sh           # One-shot local quality loop
+├── migrate-planner.sh        # Migrate legacy planner references
+├── test.sh                   # Run local integration tests
+└── new-project-bootstrap.sh  # One-command install + setup bootstrap
 
 docs/
 ├── QUALITY_SCORE.md
 ├── agents-quality-checklist.md
 ├── design/
-│   └── README.md
+│   ├── README.md
+│   └── core-beliefs.md
 ├── refs/
-│   └── README.md
+│   ├── README.md
+│   ├── harness-engineering.md
+│   ├── architecture-approach.md
+│   └── hook-config.md
 ├── quality/
-│   └── README.md
+│   ├── README.md
+│   └── entropy-garbage-collection.md
 ├── plans/
 │   ├── active/
 │   │   ├── README.md
@@ -233,9 +321,25 @@ docs/
 ├── slash-commands.md
 └── slash-commands/
     ├── README.md
+    ├── architecture.md
+    ├── planner.md
     ├── reconcile.md
     ├── handoff.md
     └── pickup.md
+
+.agent/
+└── PLANS.md                  # Execution-plan operating standard (Codex Exec Plans)
+
+ARCHITECTURE.md               # High-level map of boundaries, invariants, and flows
+
+evals/
+├── README.md
+├── cases/
+│   └── README.md
+├── rubrics/
+│   └── README.md
+└── runs/
+    └── README.md
 ```
 
 ## License

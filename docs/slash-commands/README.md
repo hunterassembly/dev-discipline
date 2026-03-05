@@ -13,5 +13,7 @@ These are command-style playbooks teams can copy into their own prompt systems.
 - `/reconcile` — run end-of-session discipline audit and report results.
 - `/handoff` — create a concise handoff for the next contributor/agent.
 - `/pickup` — rehydrate context at the start of a session.
+- `/planner` — create or validate an execution plan aligned with Codex Exec Plans.
+- `/architecture` — update or validate `ARCHITECTURE.md` for boundary/invariant changes.
 
 Use these docs as workflow templates, not platform-specific commands.

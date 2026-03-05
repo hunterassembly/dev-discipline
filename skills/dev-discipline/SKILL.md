@@ -19,15 +19,19 @@ You are working in a project that enforces coding discipline. Follow these rules
 
 - Use when: writing code, staging changes, preparing commit messages, or bootstrapping `.dev/` discipline files
 - Do not use when: only reading code, brainstorming, or doing documentation review with zero code changes
-- Primary outputs: clean commit boundaries, conventional commit messages with `why:`, and up-to-date `.dev/` records
+- Primary outputs: clean commit boundaries, conventional commit messages with `why:`, up-to-date `.dev/` records, and harness scaffolding (`AGENTS.md`, `docs/`, `evals/`)
 
 ## Before You Start
 
 1. Run `scripts/setup.sh` if git hooks aren't installed yet (check: `.git/hooks/pre-commit` should be a symlink or contain dev-discipline logic)
+   - setup also bootstraps missing harness docs/evals via `scripts/bootstrap-harness.sh`
 2. Read the worklog if one exists: `.dev/WORKLOG.md`
 3. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
 4. Understand what you're about to change and why before writing code
 5. For longer tasks, create or update an active plan under `docs/plans/active/`
+6. For non-trivial implementation, follow `.agent/PLANS.md` and use the full execution-plan structure in `docs/plans/active/plan-template.md`
+7. Keep plan template synced from canonical planner template:
+   - `scripts/sync-plan-template.sh --check`
 
 ## Commit Rules
 
@@ -100,7 +104,12 @@ Use `templates/decision-record.md` when creating a new decision entry.
 4. Commit → One concern, conventional format, with `why:` (you may use `scripts/committer` or `.agents/skills/dev-discipline/scripts/committer` to stage explicit paths only)
 5. Repeat → Next concern gets its own commit
 
+Execution-plan discipline:
+- Source-heavy changes should include updates to `docs/plans/active/*.md`
+- Keep `Progress`, `Surprises & Discoveries`, and `Decision Log` current as work proceeds
+
 Before handoff, run local doc drift check (`scripts/doc-gardener.sh` or `.agents/skills/dev-discipline/scripts/doc-gardener.sh`).
+For one-shot local quality loop, use `scripts/health-check.sh --since "24 hours ago" --skip-reconcile`.
 
 ## Hook Enforcement
 
@@ -110,3 +119,6 @@ The git hooks in this project will:
 - **post-commit**: Auto-append to the dev diary (`.dev/diary/YYYY-MM-DD.md`)
 
 Warnings are advisory. Errors block the commit. Respect both.
+
+Optional pre-commit thresholds can be configured in `.dev/discipline.env`
+(start from `.dev/discipline.env.example`).

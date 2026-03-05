@@ -14,3 +14,9 @@ Use this folder for evergreen references:
 - coding conventions
 
 Keep references short and link out to deeper docs when needed.
+
+Starter reference:
+
+- `harness-engineering.md` — operating loop for agent context, evals, and entropy control
+- `hook-config.md` — pre-commit threshold configuration and tuning
+- `architecture-approach.md` — `ARCHITECTURE.md` structure and maintenance approach

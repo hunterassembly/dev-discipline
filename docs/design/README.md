@@ -8,6 +8,10 @@ read_when:
 
 Store architecture and design docs here.
 
+## Suggested seed docs
+
+- `core-beliefs.md` — durable product + engineering non-negotiables
+
 Recommended file shape:
 
 - Problem statement

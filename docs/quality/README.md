@@ -13,3 +13,7 @@ This folder stores local quality artifacts, such as:
 - audit snapshots
 
 Treat these as operational checkpoints, not permanent architecture docs.
+
+Starter quality doc:
+
+- `entropy-garbage-collection.md` — recurring cleanup checklist
