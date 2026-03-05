@@ -27,11 +27,12 @@ You are working in a project that enforces coding discipline. Follow these rules
    - setup also bootstraps missing harness docs/evals via `scripts/bootstrap-harness.sh`
 2. Read the worklog if one exists: `.dev/WORKLOG.md`
 3. Check `.dev/FINDINGS.md` for open items from previous reconciliation. Address open items before starting new work.
-4. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
-5. Understand what you're about to change and why before writing code
-6. For longer tasks, create or update an active plan under `docs/plans/active/`
-7. For non-trivial implementation, follow `.agent/PLANS.md` and use the full execution-plan structure in `docs/plans/active/plan-template.md`
-8. Keep plan template synced from canonical planner template:
+4. Scan `.dev/learnings/` for patterns relevant to your current task.
+5. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
+6. Understand what you're about to change and why before writing code
+7. For longer tasks, create or update an active plan under `docs/plans/active/`
+8. For non-trivial implementation, follow `.agent/PLANS.md` and use the full execution-plan structure in `docs/plans/active/plan-template.md`
+9. Keep plan template synced from canonical planner template:
    - `scripts/sync-plan-template.sh --check`
 
 ## Commit Rules
@@ -90,6 +91,7 @@ Use `templates/decision-record.md` when creating a new decision entry.
 - **Never bundle unrelated changes.** If it feels like two things, it is two things.
 - **Never leave TODO comments without a tracking issue.** Create the issue, reference it.
 - **Never skip the `why:` in commit messages.** Future-you needs to know *why*, not just *what*.
+- **Never delete or suggest removing files in `.dev/`, `docs/plans/`, or `docs/decisions/`.** These are discipline artifacts, not clutter.
 
 ## Edge Cases
 
