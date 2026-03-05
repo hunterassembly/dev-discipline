@@ -81,7 +81,45 @@ if [ "$SOURCE_FILE_COUNT" -gt 0 ] && [ ! -f ".agent/PLANS.md" ]; then
 fi
 
 if [ "$SOURCE_FILE_COUNT" -ge "$PLAN_REQUIRED_SOURCE_FILE_COUNT" ] && [ "$PLAN_FILE_COUNT" -eq 0 ]; then
-  err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update (docs/plans/active/*.md)."
+  # Derive plan name from branch
+  BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+  case "$BRANCH" in
+    main|master|develop|HEAD)
+      PLAN_NAME="plan-$(date +%Y-%m-%d)"
+      ;;
+    *)
+      # Strip prefix (feat/, fix/, etc.) and use the rest
+      PLAN_NAME=$(echo "$BRANCH" | sed 's|^[a-z]*/||')
+      ;;
+  esac
+  PLAN_PATH="docs/plans/active/${PLAN_NAME}.md"
+
+  # Find plan template
+  PLAN_TEMPLATE=""
+  for candidate in \
+    "docs/plans/active/plan-template.md" \
+    "skills/planner/templates/exec-plan.md" \
+    ".agents/skills/planner/templates/exec-plan.md" \
+    "$HOME/.agents/skills/planner/templates/exec-plan.md"; do
+    if [ -f "$candidate" ]; then
+      PLAN_TEMPLATE="$candidate"
+      break
+    fi
+  done
+
+  if [ -f "$PLAN_PATH" ]; then
+    # Plan exists but wasn't staged
+    err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update. Update and stage existing plan: $PLAN_PATH"
+  elif [ -n "$PLAN_TEMPLATE" ]; then
+    # Scaffold from template
+    mkdir -p "$(dirname "$PLAN_PATH")"
+    cp "$PLAN_TEMPLATE" "$PLAN_PATH"
+    err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update (docs/plans/active/*.md)."
+    echo "   Scaffolded $PLAN_PATH from template."
+    echo "   Fill in the required sections, stage it, and re-commit."
+  else
+    err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update (docs/plans/active/*.md)."
+  fi
 elif [ "$SOURCE_FILE_COUNT" -gt 0 ] && [ "$PLAN_FILE_COUNT" -eq 0 ]; then
   warn "Source files changed without an execution plan update. For non-trivial work, update docs/plans/active/."
 fi
