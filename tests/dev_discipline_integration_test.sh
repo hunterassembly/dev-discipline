@@ -477,6 +477,105 @@ test_post_commit_logs_concerns() {
   fi
 }
 
+test_reconcile_branch_rejects_checkpoint_commits() {
+  local tmp_home tmp_repo output_file
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+  output_file=$(mktemp)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    git branch -M main >/dev/null 2>&1 || true
+
+    echo "base" > base.txt
+    git add base.txt
+    git commit --no-verify -m "$(printf 'feat(core): seed base commit\n\nwhy: establish merge base for branch checks')" >/dev/null 2>&1
+
+    git checkout -b agent/test/checkpoint >/dev/null 2>&1
+    echo "work" > work.txt
+    git add work.txt
+    git commit --no-verify -m "fixup! feat(core): seed base commit" >/dev/null 2>&1
+  )
+
+  if (cd "$tmp_repo" && "$REPO_ROOT/scripts/reconcile-branch.sh" "agent/test/checkpoint" --base main --dry-run >"$output_file" 2>&1); then
+    fail "reconcile-branch blocks unsquashed checkpoint commits"
+  else
+    if grep -qi "checkpoint commits are still present" "$output_file"; then
+      pass "reconcile-branch blocks unsquashed checkpoint commits"
+    else
+      fail "reconcile-branch blocks unsquashed checkpoint commits"
+    fi
+  fi
+}
+
+test_reconcile_branch_rejects_missing_why() {
+  local tmp_home tmp_repo output_file
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+  output_file=$(mktemp)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    git branch -M main >/dev/null 2>&1 || true
+
+    echo "base" > base.txt
+    git add base.txt
+    git commit --no-verify -m "$(printf 'feat(core): seed base commit\n\nwhy: establish merge base for branch checks')" >/dev/null 2>&1
+
+    git checkout -b agent/test/missing-why >/dev/null 2>&1
+    echo "work" > work.txt
+    git add work.txt
+    git commit --no-verify -m "feat(core): add branch work without why" >/dev/null 2>&1
+  )
+
+  if (cd "$tmp_repo" && "$REPO_ROOT/scripts/reconcile-branch.sh" "agent/test/missing-why" --base main --dry-run >"$output_file" 2>&1); then
+    fail "reconcile-branch blocks non-checkpoint commits missing why"
+  else
+    if grep -qi "missing a required 'why:' line" "$output_file"; then
+      pass "reconcile-branch blocks non-checkpoint commits missing why"
+    else
+      fail "reconcile-branch blocks non-checkpoint commits missing why"
+    fi
+  fi
+}
+
+test_reconcile_branch_allows_clean_history_in_dry_run() {
+  local tmp_home tmp_repo output_file
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+  output_file=$(mktemp)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    git branch -M main >/dev/null 2>&1 || true
+
+    echo "base" > base.txt
+    git add base.txt
+    git commit --no-verify -m "$(printf 'feat(core): seed base commit\n\nwhy: establish merge base for branch checks')" >/dev/null 2>&1
+
+    git checkout -b agent/test/clean >/dev/null 2>&1
+    echo "work" > work.txt
+    git add work.txt
+    git commit --no-verify -m "$(printf 'feat(core): add clean branch work\n\nwhy: verify merge gate allows clean concern-level history')" >/dev/null 2>&1
+  )
+
+  if (cd "$tmp_repo" && "$REPO_ROOT/scripts/reconcile-branch.sh" "agent/test/clean" --base main --dry-run >"$output_file" 2>&1); then
+    if grep -q "=== DRY RUN" "$output_file"; then
+      pass "reconcile-branch allows clean history in dry-run mode"
+    else
+      fail "reconcile-branch allows clean history in dry-run mode"
+    fi
+  else
+    fail "reconcile-branch allows clean history in dry-run mode"
+  fi
+}
+
 test_bootstrap_installs_planner_and_scaffold
 test_pre_commit_blocks_large_source_change_without_plan_update
 test_planner_validator_checks_quality_rules
@@ -500,6 +599,9 @@ test_orchestrator_skill_exists
 test_commit_msg_allows_fixup_commits
 test_commit_msg_allows_squash_commits
 test_post_commit_logs_concerns
+test_reconcile_branch_rejects_checkpoint_commits
+test_reconcile_branch_rejects_missing_why
+test_reconcile_branch_allows_clean_history_in_dry_run
 
 echo ""
 echo "Test results: $PASS_COUNT passed, $FAIL_COUNT failed"

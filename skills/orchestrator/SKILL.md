@@ -82,6 +82,7 @@ scripts/reconcile-branch.sh agent/<agent-id>/<concern> --base main
 ```
 
 This audits the branch's commits for atomicity, test gaps, doc staleness, and commit message quality. It returns a READY TO MERGE or NEEDS WORK verdict.
+The script also hard-fails before LLM review if checkpoint commits remain or if non-checkpoint commits are missing `why:` lines.
 
 Do not merge branches with a NEEDS WORK verdict. Assign the same agent to fix findings first.
 

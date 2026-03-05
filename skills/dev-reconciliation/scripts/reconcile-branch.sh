@@ -11,6 +11,7 @@ AGENT="codex"
 DRY_RUN=false
 MAX_DIFF_BYTES=51200
 MAX_COMMIT_LINES=200
+HARD_GATE_ERRORS=0
 
 usage() {
   echo "Usage: ./reconcile-branch.sh [branch] [--base main] [--agent codex|claude] [--dry-run]"
@@ -77,6 +78,38 @@ if [ "$COMMIT_COUNT" -eq 0 ]; then
 fi
 
 echo "🔍 Reconciling $COMMIT_COUNT commits on $BRANCH (base: $BASE)"
+
+checkpoint_commits=$(git log --format='%h %s' "$MERGE_BASE..$BRANCH" | grep -E '^[0-9a-f]+ (fixup!|squash!) ' || true)
+if [ -n "$checkpoint_commits" ]; then
+  echo "❌ Hard gate failed: checkpoint commits are still present on $BRANCH."
+  echo "   Squash/fixup these before merge:"
+  echo "$checkpoint_commits" | sed 's/^/   - /'
+  HARD_GATE_ERRORS=$((HARD_GATE_ERRORS + 1))
+fi
+
+missing_why_commits=""
+while IFS= read -r sha; do
+  [ -z "$sha" ] && continue
+  subject=$(git show -s --format='%s' "$sha")
+  if echo "$subject" | grep -qE '^(fixup!|squash!) '; then
+    continue
+  fi
+
+  if ! git show -s --format='%B' "$sha" | grep -qE '^why: .+'; then
+    missing_why_commits="${missing_why_commits}${sha} ${subject}"$'\n'
+  fi
+done < <(git rev-list --reverse "$MERGE_BASE..$BRANCH")
+
+if [ -n "$missing_why_commits" ]; then
+  echo "❌ Hard gate failed: commits missing a required 'why:' line."
+  echo "$missing_why_commits" | sed '/^$/d' | sed 's/^/   - /'
+  HARD_GATE_ERRORS=$((HARD_GATE_ERRORS + 1))
+fi
+
+if [ "$HARD_GATE_ERRORS" -gt 0 ]; then
+  echo "⚠️  Merge gate blocked by deterministic checks. Fix the commits above and re-run."
+  exit 1
+fi
 
 # Truncate diffs
 DIFF_TMP=$(mktemp)

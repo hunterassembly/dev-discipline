@@ -170,6 +170,10 @@ Dev-discipline works with multi-agent orchestrators like [Symphony](https://gith
 
 Single-agent users change nothing. The multi-agent features activate only when `AGENT_ID` is set and branches are used.
 
+`reconcile-branch.sh` has deterministic hard gates before LLM review:
+- fails if `fixup!` / `squash!` commits are still present
+- fails if non-checkpoint commits are missing a `why:` line
+
 ## What Gets Committed?
 
 | Path | Tracked? | Purpose |

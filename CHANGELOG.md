@@ -14,6 +14,9 @@
 - Added `orchestrator` skill with coordination contract for multi-agent systems.
 - Added `concern:` field support in post-commit diary for agents to flag risky changes.
 - Added checkpoint commit support: `fixup!` / `squash!` commits skip format/why enforcement.
+- Added deterministic merge hard gates in `reconcile-branch.sh`:
+  - fails when `fixup!` / `squash!` commits remain,
+  - fails when non-checkpoint commits are missing `why:` lines.
 - Added `bootstrap-harness.sh` to scaffold AGENTS/docs/evals for harness-engineering workflows.
 - Added `new-project-bootstrap.sh` for one-command skill install + repo setup.
 - Added `.agent/PLANS.md` execution-plan standard aligned with Codex Exec Plans.

@@ -11,7 +11,8 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
 - `skills/dev-discipline`: core enforcement, setup/teardown, and local quality loop
 - `skills/planner`: execution-plan and architecture validation
 - `skills/dev-diary`: commit-diary summarization scaffolding
-- `skills/dev-reconciliation`: end-of-session reconciliation launcher
+- `skills/dev-reconciliation`: end-of-session reconciliation launcher and feedback loop
+- `skills/orchestrator`: multi-agent coordination contract (branch-native)
 - `scripts/`: stable entry points that route to skill implementations
 
 ## Code Map
@@ -30,11 +31,19 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
   - runs `setup.sh` in target repo
   - setup links hooks and bootstraps docs/evals/architecture artifacts
 - Commit flow:
-  - `pre-commit` enforces discipline and plan/architecture checks
-  - `commit-msg` enforces conventional commit + `why:`
-  - `post-commit` appends commit metadata to local diary
+  - `pre-commit` enforces discipline and plan/architecture checks; auto-scaffolds plan files when blocking
+  - `commit-msg` enforces conventional commit + `why:` quality (length, no parrot, no filler); skips `fixup!`/`squash!` checkpoints
+  - `post-commit` appends commit metadata to local diary; tags entries with `AGENT_ID` when set; logs `concern:` lines
 - Quality flow:
   - `health-check.sh` runs docs checks, template sync checks, validators, drift scan, and optional reconciliation
+- Feedback loop:
+  - Reconciliation extracts open findings to `.dev/FINDINGS.md`
+  - Next session reads FINDINGS before starting work
+  - Resolved findings archive to `.dev/learnings/` as institutional memory (category files)
+- Multi-agent flow:
+  - Each agent works on `agent/<agent-id>/<concern>` branches with `AGENT_ID` env var set
+  - `reconcile-branch.sh` runs deterministic merge gates (no unsquashed checkpoints, no missing `why:` lines) before LLM review
+  - Orchestrator skill defines coordination contract; no custom coordination layer needed
 
 ## Architectural Invariants
 
@@ -43,6 +52,9 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
 - Execution plans are required for non-trivial source changes.
 - Plan template source-of-truth is `skills/planner/templates/exec-plan.md`.
 - Docs include front matter (`summary`, `read_when`) for discovery tooling.
+- Protected artifacts: `.dev/`, `docs/plans/`, and `docs/decisions/` must never be deleted by agents.
+- Multi-agent features are opt-in: zero overhead when `AGENT_ID` is unset.
+- Feedback loop is deterministic: findings flow to FINDINGS.md, resolved findings archive to learnings.
 
 ## Boundaries and Interfaces
 
