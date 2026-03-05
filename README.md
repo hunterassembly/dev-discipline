@@ -222,6 +222,7 @@ When you run setup, `.dev/` is created with both tracked and local-only content:
 | `.dev/contract.md` | ✅ Yes | Discipline rules (shared with team) |
 | `.dev/decisions/` | ✅ Yes | Architectural decision records |
 | `.dev/WORKLOG.md` | ✅ Yes | Project worklog |
+| `.dev/FINDINGS.md` | ✅ Yes | Open items from last reconciliation (read by next session) |
 | `.dev/diary/` | ❌ No (gitignored) | Auto-generated commit diary (local) |
 | `.dev/.last-reconciliation` | ❌ No | Reconciliation timestamp (local) |
 

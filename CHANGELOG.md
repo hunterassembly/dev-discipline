@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added `why:` line quality validation to commit-msg hook (min length, no parrot, no filler phrases).
+- Added reconciliation feedback loop: `reconcile.sh` now extracts open findings to tracked `.dev/FINDINGS.md`.
+- Added `.dev/FINDINGS.md` to session-start checklist in contract and SKILL.md.
+- Added plan auto-scaffold: pre-commit creates plan file from template when blocking for missing plan.
 - Added `bootstrap-harness.sh` to scaffold AGENTS/docs/evals for harness-engineering workflows.
 - Added `new-project-bootstrap.sh` for one-command skill install + repo setup.
 - Added `.agent/PLANS.md` execution-plan standard aligned with Codex Exec Plans.
