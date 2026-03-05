@@ -72,6 +72,11 @@ Every agent must, before writing code:
 
 Before merging an agent's branch:
 
+1. Clean up commit history on that branch:
+   - checkpoint `fixup!` / `squash!` commits are allowed during implementation,
+   - but handoff history should be consolidated into concern-level commits with clear `why:` lines.
+2. Run the branch reconciliation merge gate:
+
 ```bash
 scripts/reconcile-branch.sh agent/<agent-id>/<concern> --base main
 ```

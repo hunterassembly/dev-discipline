@@ -407,6 +407,76 @@ test_orchestrator_skill_exists() {
   fi
 }
 
+test_commit_msg_allows_fixup_commits() {
+  local tmp_repo hook_output hook_code
+  tmp_repo=$(mktemp -d)
+  git init "$tmp_repo" >/dev/null 2>&1
+
+  local hook_src="$REPO_ROOT/skills/dev-discipline/assets/commit-msg"
+  cp "$hook_src" "$tmp_repo/.git/hooks/commit-msg"
+  chmod +x "$tmp_repo/.git/hooks/commit-msg"
+
+  local msg_file="$tmp_repo/.git/COMMIT_EDITMSG"
+  printf 'fixup! feat(auth): add rate limiting' > "$msg_file"
+
+  set +e
+  hook_output=$("$tmp_repo/.git/hooks/commit-msg" "$msg_file" 2>&1)
+  hook_code=$?
+  set -e
+
+  if [ "$hook_code" -eq 0 ]; then
+    pass "commit-msg allows fixup! checkpoint commits"
+  else
+    fail "commit-msg allows fixup! checkpoint commits (code=$hook_code)"
+  fi
+}
+
+test_commit_msg_allows_squash_commits() {
+  local tmp_repo hook_output hook_code
+  tmp_repo=$(mktemp -d)
+  git init "$tmp_repo" >/dev/null 2>&1
+
+  local hook_src="$REPO_ROOT/skills/dev-discipline/assets/commit-msg"
+  cp "$hook_src" "$tmp_repo/.git/hooks/commit-msg"
+  chmod +x "$tmp_repo/.git/hooks/commit-msg"
+
+  local msg_file="$tmp_repo/.git/COMMIT_EDITMSG"
+  printf 'squash! feat(auth): add rate limiting' > "$msg_file"
+
+  set +e
+  hook_output=$("$tmp_repo/.git/hooks/commit-msg" "$msg_file" 2>&1)
+  hook_code=$?
+  set -e
+
+  if [ "$hook_code" -eq 0 ]; then
+    pass "commit-msg allows squash! checkpoint commits"
+  else
+    fail "commit-msg allows squash! checkpoint commits (code=$hook_code)"
+  fi
+}
+
+test_post_commit_logs_concerns() {
+  local tmp_home tmp_repo
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    echo "test" > testfile.txt
+    git add testfile.txt
+    git commit --no-verify -m "$(printf 'feat(auth): change login flow\n\nwhy: simplifying auth reduces attack surface\nconcern: this changes session handling — verify no active sessions break')" >/dev/null 2>&1
+  )
+
+  diary_file=$(ls "$tmp_repo/.dev/diary/"*.md 2>/dev/null | head -1)
+  if [ -n "$diary_file" ] && grep -q "verify no active sessions break" "$diary_file"; then
+    pass "post-commit logs concern: lines in diary"
+  else
+    fail "post-commit logs concern: lines in diary"
+  fi
+}
+
 test_bootstrap_installs_planner_and_scaffold
 test_pre_commit_blocks_large_source_change_without_plan_update
 test_planner_validator_checks_quality_rules
@@ -427,6 +497,9 @@ test_post_commit_tags_agent_id
 test_post_commit_no_tag_without_agent_id
 test_reconcile_branch_script_exists
 test_orchestrator_skill_exists
+test_commit_msg_allows_fixup_commits
+test_commit_msg_allows_squash_commits
+test_post_commit_logs_concerns
 
 echo ""
 echo "Test results: $PASS_COUNT passed, $FAIL_COUNT failed"

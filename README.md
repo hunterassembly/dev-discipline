@@ -102,9 +102,17 @@ git submodule add https://github.com/hunterassembly/dev-discipline.git .dev-disc
 - Blocks non-conventional commit messages (must be `type(scope): description`)
 - Blocks missing `why:` line
 - Blocks `why:` lines that are too short (<10 chars), restate the subject, or use filler phrases
+- Allows `fixup!` / `squash!` checkpoint commits during active implementation
 
 **post-commit:**
 - Silently appends commit metadata to `.dev/diary/YYYY-MM-DD.md`
+- Logs optional `concern:` lines from commit messages for reconciliation review
+
+### Commit cadence (speed + clean history)
+
+- During active implementation, use checkpoint commits (`fixup!` / `squash!`) when needed for speed.
+- Before review/merge, squash checkpoints into 1-3 concern-level commits with strong `why:` lines.
+- The quality bar applies at handoff, not every keystroke.
 
 ### At session boundaries (reconciliation)
 
@@ -190,6 +198,7 @@ Removes hooks and bridge references from AGENTS.md/CLAUDE.md. Does not delete `.
 - **The diary writes itself.** Post-commit logs metadata. AI summarizes later.
 - **Feedback loops close.** Reconciliation findings feed into the next session automatically.
 - **Multi-agent is just git.** Branches isolate, merges synchronize, hooks enforce per-branch. No coordination layer needed.
+- **Fast while building, clean at handoff.** Checkpoint commits are fine during execution; final history should be concern-level and reviewable.
 
 ## License
 

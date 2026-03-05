@@ -12,6 +12,8 @@
 - Added multi-agent orchestrator support: `AGENT_ID` env var tags diary entries and findings.
 - Added `reconcile-branch.sh` merge-gate script for branch-scoped reconciliation.
 - Added `orchestrator` skill with coordination contract for multi-agent systems.
+- Added `concern:` field support in post-commit diary for agents to flag risky changes.
+- Added checkpoint commit support: `fixup!` / `squash!` commits skip format/why enforcement.
 - Added `bootstrap-harness.sh` to scaffold AGENTS/docs/evals for harness-engineering workflows.
 - Added `new-project-bootstrap.sh` for one-command skill install + repo setup.
 - Added `.agent/PLANS.md` execution-plan standard aligned with Codex Exec Plans.
