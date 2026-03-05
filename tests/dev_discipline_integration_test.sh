@@ -127,11 +127,207 @@ EOF
   fi
 }
 
+test_commit_msg_rejects_short_why_line() {
+  local tmp_repo hook_output hook_code
+  tmp_repo=$(mktemp -d)
+  git init "$tmp_repo" >/dev/null 2>&1
+
+  local hook_src="$REPO_ROOT/skills/dev-discipline/assets/commit-msg"
+  cp "$hook_src" "$tmp_repo/.git/hooks/commit-msg"
+  chmod +x "$tmp_repo/.git/hooks/commit-msg"
+
+  local msg_file="$tmp_repo/.git/COMMIT_EDITMSG"
+  printf 'feat(x): add thing\n\nwhy: needed' > "$msg_file"
+
+  set +e
+  hook_output=$("$tmp_repo/.git/hooks/commit-msg" "$msg_file" 2>&1)
+  hook_code=$?
+  set -e
+
+  if [ "$hook_code" -ne 0 ] && echo "$hook_output" | grep -qi "too short"; then
+    pass "commit-msg rejects short why line"
+  else
+    fail "commit-msg rejects short why line (code=$hook_code)"
+  fi
+}
+
+test_commit_msg_rejects_parrot_why_line() {
+  local tmp_repo hook_output hook_code
+  tmp_repo=$(mktemp -d)
+  git init "$tmp_repo" >/dev/null 2>&1
+
+  local hook_src="$REPO_ROOT/skills/dev-discipline/assets/commit-msg"
+  cp "$hook_src" "$tmp_repo/.git/hooks/commit-msg"
+  chmod +x "$tmp_repo/.git/hooks/commit-msg"
+
+  local msg_file="$tmp_repo/.git/COMMIT_EDITMSG"
+  printf 'feat(auth): add rate limiting\n\nwhy: add rate limiting' > "$msg_file"
+
+  set +e
+  hook_output=$("$tmp_repo/.git/hooks/commit-msg" "$msg_file" 2>&1)
+  hook_code=$?
+  set -e
+
+  if [ "$hook_code" -ne 0 ] && echo "$hook_output" | grep -qi "restates"; then
+    pass "commit-msg rejects parrot why line"
+  else
+    fail "commit-msg rejects parrot why line (code=$hook_code)"
+  fi
+}
+
+test_commit_msg_rejects_filler_why_line() {
+  local tmp_repo hook_output hook_code
+  tmp_repo=$(mktemp -d)
+  git init "$tmp_repo" >/dev/null 2>&1
+
+  local hook_src="$REPO_ROOT/skills/dev-discipline/assets/commit-msg"
+  cp "$hook_src" "$tmp_repo/.git/hooks/commit-msg"
+  chmod +x "$tmp_repo/.git/hooks/commit-msg"
+
+  local msg_file="$tmp_repo/.git/COMMIT_EDITMSG"
+  printf 'feat(x): add thing\n\nwhy: because it was needed' > "$msg_file"
+
+  set +e
+  hook_output=$("$tmp_repo/.git/hooks/commit-msg" "$msg_file" 2>&1)
+  hook_code=$?
+  set -e
+
+  if [ "$hook_code" -ne 0 ] && echo "$hook_output" | grep -qi "filler"; then
+    pass "commit-msg rejects filler why line"
+  else
+    fail "commit-msg rejects filler why line (code=$hook_code)"
+  fi
+}
+
+test_commit_msg_accepts_good_why_line() {
+  local tmp_repo hook_output hook_code
+  tmp_repo=$(mktemp -d)
+  git init "$tmp_repo" >/dev/null 2>&1
+
+  local hook_src="$REPO_ROOT/skills/dev-discipline/assets/commit-msg"
+  cp "$hook_src" "$tmp_repo/.git/hooks/commit-msg"
+  chmod +x "$tmp_repo/.git/hooks/commit-msg"
+
+  local msg_file="$tmp_repo/.git/COMMIT_EDITMSG"
+  printf 'feat(search): add fuzzy matching for typo tolerance\n\nwhy: users frequently misspell product names, losing 12%% of searches' > "$msg_file"
+
+  set +e
+  hook_output=$("$tmp_repo/.git/hooks/commit-msg" "$msg_file" 2>&1)
+  hook_code=$?
+  set -e
+
+  if [ "$hook_code" -eq 0 ]; then
+    pass "commit-msg accepts good why line"
+  else
+    fail "commit-msg accepts good why line (code=$hook_code, output=$hook_output)"
+  fi
+}
+
+test_reconcile_script_references_findings() {
+  if grep -q "FINDINGS" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh"; then
+    pass "reconcile.sh references FINDINGS extraction"
+  else
+    fail "reconcile.sh references FINDINGS extraction"
+  fi
+}
+
+test_pre_commit_scaffolds_plan_on_block() {
+  local tmp_home tmp_repo hook_output
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    git checkout -b feat/cool-feature >/dev/null 2>&1
+    for i in 1 2 3 4 5; do
+      echo "const v$i = $i;" > "feature_$i.ts"
+      git add "feature_$i.ts"
+    done
+    set +e
+    hook_output=$(.git/hooks/pre-commit 2>&1)
+    set -e
+
+    if [ -f "docs/plans/active/cool-feature.md" ] && echo "$hook_output" | grep -q "Scaffolded"; then
+      exit 0
+    fi
+    echo "OUTPUT: $hook_output" >&2
+    exit 1
+  ) && pass "pre-commit scaffolds plan from template on block" \
+    || fail "pre-commit scaffolds plan from template on block"
+}
+
+test_pre_commit_scaffolds_plan_with_timestamp_on_main() {
+  local tmp_home tmp_repo hook_output
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    for i in 1 2 3 4 5; do
+      echo "const v$i = $i;" > "feature_$i.ts"
+      git add "feature_$i.ts"
+    done
+    set +e
+    hook_output=$(.git/hooks/pre-commit 2>&1)
+    set -e
+
+    # Should create a timestamped plan file
+    if ls docs/plans/active/plan-*.md >/dev/null 2>&1 && echo "$hook_output" | grep -q "Scaffolded"; then
+      exit 0
+    fi
+    echo "OUTPUT: $hook_output" >&2
+    exit 1
+  ) && pass "pre-commit scaffolds plan with timestamp on main" \
+    || fail "pre-commit scaffolds plan with timestamp on main"
+}
+
+test_pre_commit_does_not_overwrite_existing_plan() {
+  local tmp_home tmp_repo hook_output
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    git checkout -b feat/existing-plan >/dev/null 2>&1
+    mkdir -p docs/plans/active
+    echo "# My existing plan" > docs/plans/active/existing-plan.md
+    for i in 1 2 3 4 5; do
+      echo "const v$i = $i;" > "feature_$i.ts"
+      git add "feature_$i.ts"
+    done
+    set +e
+    hook_output=$(.git/hooks/pre-commit 2>&1)
+    set -e
+
+    # Should NOT overwrite, and content should still be original
+    if grep -q "My existing plan" docs/plans/active/existing-plan.md && echo "$hook_output" | grep -qi "update and stage"; then
+      exit 0
+    fi
+    echo "OUTPUT: $hook_output" >&2
+    exit 1
+  ) && pass "pre-commit does not overwrite existing plan" \
+    || fail "pre-commit does not overwrite existing plan"
+}
+
 test_bootstrap_installs_planner_and_scaffold
 test_pre_commit_blocks_large_source_change_without_plan_update
 test_planner_validator_checks_quality_rules
 test_sync_plan_template_detects_drift
 test_migrate_planner_updates_legacy_references
+test_commit_msg_rejects_short_why_line
+test_commit_msg_rejects_parrot_why_line
+test_commit_msg_rejects_filler_why_line
+test_commit_msg_accepts_good_why_line
+test_reconcile_script_references_findings
+test_pre_commit_scaffolds_plan_on_block
+test_pre_commit_scaffolds_plan_with_timestamp_on_main
+test_pre_commit_does_not_overwrite_existing_plan
 
 echo ""
 echo "Test results: $PASS_COUNT passed, $FAIL_COUNT failed"

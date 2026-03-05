@@ -49,6 +49,37 @@ if ! echo "$MSG" | grep -qE '^why: .+'; then
   ERRORS=$((ERRORS + 1))
 fi
 
+# --- 4. Why line quality ---
+WHY_LINE=$(echo "$MSG" | grep -E '^why: .+' | head -1)
+if [ -n "$WHY_LINE" ]; then
+  WHY_BODY="${WHY_LINE#why: }"
+  WHY_LEN=${#WHY_BODY}
+
+  # Minimum length
+  if [ "$WHY_LEN" -lt 10 ]; then
+    echo -e "${RED}❌ why: line is too short ($WHY_LEN chars, minimum 10).${NC}"
+    echo "   The why: should explain motivation, not just restate the change."
+    ERRORS=$((ERRORS + 1))
+  fi
+
+  # No parrot — why body can't match the subject description
+  SUBJECT_DESC=$(echo "$FIRST_LINE" | sed 's/^[a-z]*\(([^)]*)\)\{0,1\}: //')
+  SUBJECT_LOWER=$(echo "$SUBJECT_DESC" | tr '[:upper:]' '[:lower:]')
+  WHY_LOWER=$(echo "$WHY_BODY" | tr '[:upper:]' '[:lower:]')
+  if [ "$WHY_LOWER" = "$SUBJECT_LOWER" ]; then
+    echo -e "${RED}❌ why: line restates the commit subject. Explain the motivation, not the change.${NC}"
+    ERRORS=$((ERRORS + 1))
+  fi
+
+  # No filler phrases
+  case "$WHY_LOWER" in
+    "because it was needed"|"it needed to change"|"needed"|"update"|"fix"|"changes"|"necessary change"|"required")
+      echo -e "${RED}❌ why: line uses a filler phrase. Be specific about the motivation.${NC}"
+      ERRORS=$((ERRORS + 1))
+      ;;
+  esac
+fi
+
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "Commit blocked. Fix your commit message."
