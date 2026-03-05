@@ -4,7 +4,10 @@ Before writing any code, read and follow these rules.
 
 ## Commit Rules
 
-- **One concern per commit.** Don't mix refactors with features, formatting with bug fixes.
+- **One concern per final commit.** Don't mix refactors with features, formatting with bug fixes.
+- **Concern-level, not keystroke-level.** You do not need a commit for every tiny edit.
+- **Fast checkpoints are allowed.** Use `fixup!` / `squash!` commits during active iteration when helpful.
+- **Clean before handoff.** Before review/merge, squash checkpoint commits into 1-3 concern-level commits with strong `why:` lines.
 - **Conventional commit format:**
   ```
   type(scope): description
@@ -13,6 +16,7 @@ Before writing any code, read and follow these rules.
   ```
   Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `style`, `perf`, `ci`, `build`, `revert`
 - **The `why:` line is mandatory.** It captures reasoning, not just what changed.
+- **Flag concerns.** If you're worried about something in a commit, add a `concern:` line to the message body. It gets logged in the diary for reconciliation to review.
 - **Never use `--no-verify`.** The git hooks exist for a reason.
 
 ## Testing Rules
@@ -33,8 +37,9 @@ Before writing any code, read and follow these rules.
 1. **Think** — Plan what you'll change
 2. **Change** — Make the minimal change
 3. **Test** — Verify it works
-4. **Commit** — One concern, conventional format, with `why:`
-5. **Repeat** — Next concern gets its own commit
+4. **Checkpoint** — During active work, use `fixup!` / `squash!` commits if needed
+5. **Commit** — Before handoff, produce concern-level conventional commits with `why:`
+6. **Repeat** — Next concern gets its own commit
 
 ## What NOT To Do
 

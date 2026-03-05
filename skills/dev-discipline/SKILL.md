@@ -38,10 +38,12 @@ You are working in a project that enforces coding discipline. Follow these rules
 ## Commit Rules
 
 ### One Concern Per Commit
-- Each commit addresses exactly ONE logical change
+- Final handoff commits should address exactly ONE logical change
 - Don't mix refactors with features
 - Don't mix formatting with bug fixes
 - If you catch yourself doing two things, commit the first, then start the second
+- During active implementation, fast checkpoint commits are allowed (`fixup!` / `squash!`)
+- Before handoff/review, consolidate checkpoints into concern-level commits with clear `why:` lines
 
 ### Conventional Commits
 Format every commit message as:
@@ -55,6 +57,11 @@ why: one-line explanation of the decision or motivation
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `style`, `perf`
 
 The `why:` line is mandatory. It captures the reasoning, not just the what.
+
+Optional `concern:` line flags worries for reconciliation review:
+```
+concern: this changes the auth flow — verify no sessions break
+```
 
 ### Examples
 
@@ -104,8 +111,9 @@ Use `templates/decision-record.md` when creating a new decision entry.
 1. Think → Plan what you'll change
 2. Change → Make the minimal change
 3. Test → Verify it works
-4. Commit → One concern, conventional format, with `why:` (you may use `scripts/committer` or `.agents/skills/dev-discipline/scripts/committer` to stage explicit paths only)
-5. Repeat → Next concern gets its own commit
+4. Checkpoint → use `fixup!` / `squash!` commits during active iteration if useful
+5. Commit → before handoff, produce concern-level conventional commits with `why:` (you may use `scripts/committer` or `.agents/skills/dev-discipline/scripts/committer` to stage explicit paths only)
+6. Repeat → next concern gets its own commit
 
 Execution-plan discipline:
 - Source-heavy changes should include updates to `docs/plans/active/*.md`
