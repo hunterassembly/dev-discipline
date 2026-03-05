@@ -6,7 +6,7 @@ description: >
   and navigate the diary. Use when asked to "show today's work", "summarize
   what happened", or "check the dev diary". Avoid when authoritative source-of-truth
   is needed for code content (use git diff/log directly for final verification).
-license: Apache-2.0
+license: MIT
 metadata:
   author: hunterassembly
   version: "0.1.0"

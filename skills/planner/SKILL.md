@@ -4,7 +4,7 @@ description: >
   Ensures implementation plans follow the Codex Exec Plans standard. Use when creating,
   updating, or reviewing plan files under docs/plans/active/. Produces compliant plans
   with required sections, living progress updates, and explicit user-benefit steps.
-license: Apache-2.0
+license: MIT
 metadata:
   author: hunterassembly
   version: "0.1.0"

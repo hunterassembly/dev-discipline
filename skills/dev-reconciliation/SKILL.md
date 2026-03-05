@@ -6,7 +6,7 @@ description: >
   report and enriched dev diary. Use at end of a coding session or before a PR review.
   Invoke explicitly with $dev-reconciliation or when asked to "reconcile", "review today's work",
   or "audit commits". Avoid when the user expects automatic code fixes; this skill is report-first.
-license: Apache-2.0
+license: MIT
 metadata:
   author: hunterassembly
   version: "0.1.0"

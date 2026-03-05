@@ -5,7 +5,7 @@ description: >
   or setting up repo discipline hooks. Avoid for read-only research tasks with no file changes.
   Ensures one concern per commit, conventional commit messages, test coverage for behavioral
   changes, and decision documentation. Produces a disciplined commit workflow and installs git hooks.
-license: Apache-2.0
+license: MIT
 metadata:
   author: hunterassembly
   version: "0.1.0"
