@@ -51,7 +51,7 @@ Consistency and smaller units make reviews and rollbacks safer.
 ## 5) Verify-Until-Green Loop
 
 - [ ] Requires local gate before handoff (lint/typecheck/tests/docs)
-- [ ] Defines CI investigation commands and rerun policy
+- [ ] Defines how to investigate and rerun any shared verification step beyond the local gate
 - [ ] States fallback when blocked (what is missing, what was attempted)
 - [ ] Encourages end-to-end verification over partial checks
 
@@ -106,6 +106,6 @@ Paste into a new `AGENTS.md` and tailor quickly:
 - Safety: no destructive git/file ops without explicit consent
 - Commits: Conventional Commits; one concern per commit
 - Verification: run lint/typecheck/tests/docs before handoff
-- CI: inspect failures, rerun, fix until green
+- Shared verification: inspect failures, rerun, fix until green
 - Docs: read docs index before coding; update docs with behavior/API changes
 ```

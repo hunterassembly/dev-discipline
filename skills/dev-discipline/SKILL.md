@@ -26,7 +26,7 @@ You are working in a project that enforces coding discipline. Follow these rules
 1. Run `scripts/setup.sh` if git hooks aren't installed yet (check: `.git/hooks/pre-commit` should be a symlink or contain dev-discipline logic)
    - setup also bootstraps missing harness docs/evals via `scripts/bootstrap-harness.sh`
 2. Read the worklog if one exists: `.dev/WORKLOG.md`
-3. Check `.dev/FINDINGS.md` for open items from previous reconciliation. Address open items before starting new work.
+3. Check the scoped findings file for your branch or `AGENT_ID` under `.dev/findings/` when present; otherwise read `.dev/FINDINGS.md`. Address open items before starting new work.
 4. Scan `.dev/learnings/` for patterns relevant to your current task.
 5. If docs exist, run docs index (`scripts/docs-list.sh` or `.agents/skills/dev-discipline/scripts/docs-list.sh`) to load relevant guidance (`summary` + `read_when`)
 6. Understand what you're about to change and why before writing code
@@ -98,12 +98,12 @@ Use `templates/decision-record.md` when creating a new decision entry.
 - **Never bundle unrelated changes.** If it feels like two things, it is two things.
 - **Never leave TODO comments without a tracking issue.** Create the issue, reference it.
 - **Never skip the `why:` in commit messages.** Future-you needs to know *why*, not just *what*.
-- **Never delete or suggest removing files in `.dev/`, `docs/plans/`, or `docs/decisions/`.** These are discipline artifacts, not clutter.
+- **Never delete or suggest removing files in `.dev/`, `docs/plans/`, or `.dev/decisions/`.** These are discipline artifacts, not clutter.
 
 ## Edge Cases
 
 - If the task is docs-only (no behavior change), tests are optional but commit format rules still apply.
-- If hooks are unavailable (CI containers, minimal checkout), run equivalent checks manually before commit.
+- If hooks are unavailable (minimal checkout or stripped environment), run equivalent checks manually before commit.
 - If a change spans concerns, split into sequential commits rather than one large "catch-all" commit.
 
 ## Process
@@ -116,7 +116,7 @@ Use `templates/decision-record.md` when creating a new decision entry.
 6. Repeat → next concern gets its own commit
 
 Execution-plan discipline:
-- Source-heavy changes should include updates to `docs/plans/active/*.md`
+- Broad or cross-boundary source changes should include updates to `docs/plans/active/*.md`
 - Keep `Progress`, `Surprises & Discoveries`, and `Decision Log` current as work proceeds
 
 Before handoff, run local doc drift check (`scripts/doc-gardener.sh` or `.agents/skills/dev-discipline/scripts/doc-gardener.sh`).

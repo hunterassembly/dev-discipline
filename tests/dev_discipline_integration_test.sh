@@ -36,7 +36,7 @@ test_bootstrap_installs_planner_and_scaffold() {
   fi
 }
 
-test_pre_commit_blocks_large_source_change_without_plan_update() {
+test_pre_commit_blocks_cross_boundary_source_change_without_plan_update() {
   local tmp_home tmp_repo hook_output hook_code
   tmp_home=$(mktemp -d)
   tmp_repo=$(mktemp -d)
@@ -45,9 +45,11 @@ test_pre_commit_blocks_large_source_change_without_plan_update() {
 
   (
     cd "$tmp_repo"
-    for i in 1 2 3 4 5; do
-      echo "const v$i = $i;" > "feature_$i.ts"
-      git add "feature_$i.ts"
+    mkdir -p src lib
+    for i in 1 2 3 4; do
+      echo "const src$i = $i;" > "src/feature_$i.ts"
+      echo "const lib$i = $i;" > "lib/feature_$i.ts"
+      git add "src/feature_$i.ts" "lib/feature_$i.ts"
     done
     set +e
     hook_output=$(.git/hooks/pre-commit 2>&1)
@@ -58,8 +60,36 @@ test_pre_commit_blocks_large_source_change_without_plan_update() {
       exit 0
     fi
     exit 1
-  ) && pass "pre-commit blocks significant source changes without plan updates" \
-    || fail "pre-commit blocks significant source changes without plan updates"
+  ) && pass "pre-commit blocks broad cross-boundary source changes without plan updates" \
+    || fail "pre-commit blocks broad cross-boundary source changes without plan updates"
+}
+
+test_pre_commit_allows_small_single_boundary_change_without_plan_update() {
+  local tmp_home tmp_repo hook_output hook_code
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/tmp/devdisc_test_small_hook_bootstrap.log 2>&1
+
+  (
+    cd "$tmp_repo"
+    mkdir -p src
+    for i in 1 2 3 4 5; do
+      echo "const v$i = $i;" > "src/feature_$i.ts"
+      git add "src/feature_$i.ts"
+    done
+    set +e
+    hook_output=$(.git/hooks/pre-commit 2>&1)
+    hook_code=$?
+    set -e
+    echo "$hook_output" > /tmp/devdisc_test_small_hook_output.log
+
+    if [ "$hook_code" -eq 0 ] && ! echo "$hook_output" | grep -q "requires an execution plan update"; then
+      exit 0
+    fi
+    exit 1
+  ) && pass "pre-commit allows small single-boundary source changes without a plan" \
+    || fail "pre-commit allows small single-boundary source changes without a plan"
 }
 
 test_planner_validator_checks_quality_rules() {
@@ -224,10 +254,11 @@ test_commit_msg_accepts_good_why_line() {
 }
 
 test_reconcile_script_references_findings() {
-  if grep -q "FINDINGS" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh"; then
-    pass "reconcile.sh references FINDINGS extraction"
+  if grep -q "resolve_findings_file" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh" \
+    && grep -q ".dev/findings/" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh"; then
+    pass "reconcile.sh resolves shared or scoped findings files"
   else
-    fail "reconcile.sh references FINDINGS extraction"
+    fail "reconcile.sh resolves shared or scoped findings files"
   fi
 }
 
@@ -241,9 +272,11 @@ test_pre_commit_scaffolds_plan_on_block() {
   (
     cd "$tmp_repo"
     git checkout -b feat/cool-feature >/dev/null 2>&1
-    for i in 1 2 3 4 5; do
-      echo "const v$i = $i;" > "feature_$i.ts"
-      git add "feature_$i.ts"
+    mkdir -p src lib
+    for i in 1 2 3 4; do
+      echo "const src$i = $i;" > "src/feature_$i.ts"
+      echo "const lib$i = $i;" > "lib/feature_$i.ts"
+      git add "src/feature_$i.ts" "lib/feature_$i.ts"
     done
     set +e
     hook_output=$(.git/hooks/pre-commit 2>&1)
@@ -267,9 +300,11 @@ test_pre_commit_scaffolds_plan_with_timestamp_on_main() {
 
   (
     cd "$tmp_repo"
-    for i in 1 2 3 4 5; do
-      echo "const v$i = $i;" > "feature_$i.ts"
-      git add "feature_$i.ts"
+    mkdir -p src lib
+    for i in 1 2 3 4; do
+      echo "const src$i = $i;" > "src/feature_$i.ts"
+      echo "const lib$i = $i;" > "lib/feature_$i.ts"
+      git add "src/feature_$i.ts" "lib/feature_$i.ts"
     done
     set +e
     hook_output=$(.git/hooks/pre-commit 2>&1)
@@ -297,9 +332,11 @@ test_pre_commit_does_not_overwrite_existing_plan() {
     git checkout -b feat/existing-plan >/dev/null 2>&1
     mkdir -p docs/plans/active
     echo "# My existing plan" > docs/plans/active/existing-plan.md
-    for i in 1 2 3 4 5; do
-      echo "const v$i = $i;" > "feature_$i.ts"
-      git add "feature_$i.ts"
+    mkdir -p src lib
+    for i in 1 2 3 4; do
+      echo "const src$i = $i;" > "src/feature_$i.ts"
+      echo "const lib$i = $i;" > "lib/feature_$i.ts"
+      git add "src/feature_$i.ts" "lib/feature_$i.ts"
     done
     set +e
     hook_output=$(.git/hooks/pre-commit 2>&1)
@@ -315,17 +352,64 @@ test_pre_commit_does_not_overwrite_existing_plan() {
     || fail "pre-commit does not overwrite existing plan"
 }
 
-test_setup_creates_learnings_directory() {
+test_setup_creates_findings_and_learnings_directories() {
   local tmp_home tmp_repo
   tmp_home=$(mktemp -d)
   tmp_repo=$(mktemp -d)
 
   HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
 
-  if [ -d "$tmp_repo/.dev/learnings" ]; then
-    pass "setup creates .dev/learnings/ directory"
+  if [ -d "$tmp_repo/.dev/findings" ] && [ -d "$tmp_repo/.dev/learnings" ]; then
+    pass "setup creates .dev/findings/ and .dev/learnings/ directories"
   else
-    fail "setup creates .dev/learnings/ directory"
+    fail "setup creates .dev/findings/ and .dev/learnings/ directories"
+  fi
+}
+
+test_reconcile_scopes_findings_by_agent() {
+  local tmp_home tmp_repo output_file fake_bin
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+  fake_bin=$(mktemp -d)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  cat > "$fake_bin/codex" << 'EOF'
+#!/usr/bin/env bash
+cat << 'REPORT'
+# Reconciliation Report — 2026-03-12
+
+## Summary
+Scoped findings test.
+
+## Test Gaps
+- [ ] Add a regression test
+
+## Doc Updates Needed
+- [ ] Update README
+
+## Decisions to Document
+- [ ] Capture the heuristic change
+
+## Diary Summary
+Test summary.
+REPORT
+EOF
+  chmod +x "$fake_bin/codex"
+
+  (
+    cd "$tmp_repo"
+    echo "base" > tracked.txt
+    git add tracked.txt
+    git commit --no-verify -m "$(printf 'feat(core): add tracked file\n\nwhy: create a commit for reconciliation coverage')" >/dev/null 2>&1
+    PATH="$fake_bin:$PATH" AGENT_ID=test-agent HOME="$tmp_home" "$REPO_ROOT/skills/dev-reconciliation/scripts/reconcile.sh" --since "24 hours ago" --agent codex >/tmp/devdisc_test_reconcile_scope.log 2>&1
+  )
+
+  output_file="$tmp_repo/.dev/findings/agent-test-agent.md"
+  if [ -f "$output_file" ] && [ ! -f "$tmp_repo/.dev/FINDINGS.md" ] && grep -q "agent-test-agent.md" "$output_file"; then
+    pass "reconcile scopes findings to an agent-specific file"
+  else
+    fail "reconcile scopes findings to an agent-specific file"
   fi
 }
 
@@ -566,18 +650,56 @@ test_reconcile_branch_allows_clean_history_in_dry_run() {
   )
 
   if (cd "$tmp_repo" && "$REPO_ROOT/scripts/reconcile-branch.sh" "agent/test/clean" --base main --dry-run >"$output_file" 2>&1); then
-    if grep -q "=== DRY RUN" "$output_file"; then
-      pass "reconcile-branch allows clean history in dry-run mode"
+    if grep -q "LLM review skipped" "$output_file"; then
+      pass "reconcile-branch skips LLM review for low-risk clean branches"
     else
-      fail "reconcile-branch allows clean history in dry-run mode"
+      fail "reconcile-branch skips LLM review for low-risk clean branches"
     fi
   else
-    fail "reconcile-branch allows clean history in dry-run mode"
+    fail "reconcile-branch skips LLM review for low-risk clean branches"
+  fi
+}
+
+test_reconcile_branch_escalates_risky_history_in_dry_run() {
+  local tmp_home tmp_repo output_file
+  tmp_home=$(mktemp -d)
+  tmp_repo=$(mktemp -d)
+  output_file=$(mktemp)
+
+  HOME="$tmp_home" "$REPO_ROOT/scripts/new-project-bootstrap.sh" --init-git "$tmp_repo" >/dev/null 2>&1
+
+  (
+    cd "$tmp_repo"
+    git branch -M main >/dev/null 2>&1 || true
+
+    echo "base" > base.txt
+    git add base.txt
+    git commit --no-verify -m "$(printf 'feat(core): seed base commit\n\nwhy: establish merge base for branch checks')" >/dev/null 2>&1
+
+    git checkout -b agent/test/risky >/dev/null 2>&1
+    mkdir -p src lib
+    for i in 1 2 3; do
+      echo "const src$i = $i;" > "src/feature_$i.ts"
+      echo "const lib$i = $i;" > "lib/feature_$i.ts"
+      git add "src/feature_$i.ts" "lib/feature_$i.ts"
+    done
+    git commit --no-verify -m "$(printf 'feat(core): add broad branch work\n\nwhy: verify risky branches still get deeper review')" >/dev/null 2>&1
+  )
+
+  if (cd "$tmp_repo" && "$REPO_ROOT/scripts/reconcile-branch.sh" "agent/test/risky" --base main --dry-run >"$output_file" 2>&1); then
+    if grep -q "Prompt that would be sent" "$output_file" && grep -q "Risk Signals" "$output_file"; then
+      pass "reconcile-branch escalates risky branches to LLM review"
+    else
+      fail "reconcile-branch escalates risky branches to LLM review"
+    fi
+  else
+    fail "reconcile-branch escalates risky branches to LLM review"
   fi
 }
 
 test_bootstrap_installs_planner_and_scaffold
-test_pre_commit_blocks_large_source_change_without_plan_update
+test_pre_commit_blocks_cross_boundary_source_change_without_plan_update
+test_pre_commit_allows_small_single_boundary_change_without_plan_update
 test_planner_validator_checks_quality_rules
 test_sync_plan_template_detects_drift
 test_migrate_planner_updates_legacy_references
@@ -589,7 +711,8 @@ test_reconcile_script_references_findings
 test_pre_commit_scaffolds_plan_on_block
 test_pre_commit_scaffolds_plan_with_timestamp_on_main
 test_pre_commit_does_not_overwrite_existing_plan
-test_setup_creates_learnings_directory
+test_setup_creates_findings_and_learnings_directories
+test_reconcile_scopes_findings_by_agent
 test_reconcile_script_archives_resolved_findings
 test_contract_has_protected_artifacts_rule
 test_post_commit_tags_agent_id
@@ -602,6 +725,7 @@ test_post_commit_logs_concerns
 test_reconcile_branch_rejects_checkpoint_commits
 test_reconcile_branch_rejects_missing_why
 test_reconcile_branch_allows_clean_history_in_dry_run
+test_reconcile_branch_escalates_risky_history_in_dry_run
 
 echo ""
 echo "Test results: $PASS_COUNT passed, $FAIL_COUNT failed"

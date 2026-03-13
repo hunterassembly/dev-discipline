@@ -14,6 +14,35 @@ usage() {
   echo "Usage: ./reconcile.sh [--since \"24 hours ago\"] [--agent codex|claude] [--dry-run]"
 }
 
+sanitize_for_filename() {
+  printf "%s" "$1" | tr '/[:space:]' '--' | tr -c 'A-Za-z0-9._-' '-'
+}
+
+current_branch_name() {
+  git symbolic-ref --short HEAD 2>/dev/null || echo "HEAD"
+}
+
+resolve_findings_file() {
+  local branch safe_branch safe_agent
+
+  branch=$(current_branch_name)
+  if [ -n "${AGENT_ID:-}" ]; then
+    safe_agent=$(sanitize_for_filename "$AGENT_ID")
+    echo "$REPO_ROOT/.dev/findings/agent-$safe_agent.md"
+    return
+  fi
+
+  case "$branch" in
+    main|master|develop|HEAD)
+      echo "$REPO_ROOT/.dev/FINDINGS.md"
+      ;;
+    *)
+      safe_branch=$(sanitize_for_filename "$branch")
+      echo "$REPO_ROOT/.dev/findings/branch-$safe_branch.md"
+      ;;
+  esac
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --since)
@@ -180,9 +209,9 @@ esac
 date -Iseconds > "$LAST_REC_FILE"
 
 # Archive resolved findings to .dev/learnings/ before overwriting
-FINDINGS_FILE="$REPO_ROOT/.dev/FINDINGS.md"
+FINDINGS_FILE=$(resolve_findings_file)
 LEARNINGS_DIR="$REPO_ROOT/.dev/learnings"
-mkdir -p "$LEARNINGS_DIR"
+mkdir -p "$LEARNINGS_DIR" "$(dirname "$FINDINGS_FILE")"
 
 if [ -f "$FINDINGS_FILE" ]; then
   # Map finding sections to learnings category files
@@ -207,16 +236,20 @@ if [ -f "$FINDINGS_FILE" ]; then
   done
 fi
 
-# Extract open findings into .dev/FINDINGS.md (tracked, read by next session)
+# Extract open findings into the shared or scoped findings file (tracked, read by the next session)
 AGENT_TAG=""
 if [ -n "${AGENT_ID:-}" ]; then
   AGENT_TAG=" (agent: $AGENT_ID)"
+fi
+SCOPE_NOTE=""
+if [ "$FINDINGS_FILE" != "$REPO_ROOT/.dev/FINDINGS.md" ]; then
+  SCOPE_NOTE=" in $(basename "$FINDINGS_FILE")"
 fi
 
 cat > "$FINDINGS_TMP" << FEOF
 # Open Findings
 
-Last updated: $DATE from reconciliation-$DATE.md${AGENT_TAG}
+Last updated: $DATE from reconciliation-$DATE.md${AGENT_TAG}${SCOPE_NOTE}
 
 FEOF
 
@@ -232,14 +265,14 @@ done
 FINDINGS_LINE_COUNT=$(wc -l < "$FINDINGS_TMP" | tr -d ' ')
 if [ "$FINDINGS_LINE_COUNT" -gt 4 ]; then
   cp "$FINDINGS_TMP" "$FINDINGS_FILE"
-  echo "📋 Open findings written to .dev/FINDINGS.md"
+  echo "📋 Open findings written to ${FINDINGS_FILE#$REPO_ROOT/}"
 else
   # No findings — clear the file if it exists
   if [ -f "$FINDINGS_FILE" ]; then
     echo "# Open Findings" > "$FINDINGS_FILE"
     echo "" >> "$FINDINGS_FILE"
     echo "No open findings as of $DATE." >> "$FINDINGS_FILE"
-    echo "✅ No open findings — .dev/FINDINGS.md cleared"
+    echo "✅ No open findings — ${FINDINGS_FILE#$REPO_ROOT/} cleared"
   fi
 fi
 

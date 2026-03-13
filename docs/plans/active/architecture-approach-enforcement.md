@@ -15,7 +15,7 @@ Ensure architecture changes are consistently captured, validated, and discoverab
 - [x] 2026-03-04 21:10 - plan created
 - [x] 2026-03-04 21:15 - architecture validator and wrappers added
 - [x] 2026-03-04 21:22 - planner template + skill updated with Architecture Impact
-- [x] 2026-03-04 21:30 - setup/bootstrap/hook/CI docs wired for architecture approach
+- [x] 2026-03-04 21:30 - setup/bootstrap/hook/quality docs wired for architecture approach
 - [x] 2026-03-04 21:40 - validation and integration tests completed
 
 ## Surprises & Discoveries
@@ -51,7 +51,7 @@ Ensure architecture changes are consistently captured, validated, and discoverab
 - In scope:
   - Add architecture validation tooling and wrapper commands.
   - Integrate architecture impact into plan template and planner skill instructions.
-  - Wire setup/bootstrap/hook/health-check/CI/docs to enforce and explain architecture discipline.
+  - Wire setup/bootstrap/hook/health-check/docs to enforce and explain architecture discipline.
 - Out of scope:
   - Project-specific architecture content beyond toolkit-level defaults.
   - Blocking commits on architecture updates for all source changes.
@@ -59,7 +59,7 @@ Ensure architecture changes are consistently captured, validated, and discoverab
 ## Architecture Impact
 
 - Impacted architecture areas:
-  - Toolkit workflow boundaries (planning, architecture docs, enforcement hooks, CI quality loop).
+  - Toolkit workflow boundaries (planning, architecture docs, enforcement hooks, local quality loop).
 - Invariants affected:
   - Non-trivial work must include structured planning with explicit architecture-impact statements.
   - Architecture map remains a concise orientation artifact with defined required sections.
@@ -75,7 +75,7 @@ User benefit: users can run one clear command to verify architecture docs are co
 User benefit: implementation plans now make system-level consequences explicit before and during coding.
 3. [done] Integrate architecture approach into setup/bootstrap, hook config, slash docs, and README.
 User benefit: teams adopting the toolkit get architecture discipline automatically with minimal setup effort.
-4. [done] Add architecture checks into quality workflow and CI.
+4. [done] Add architecture checks into the quality workflow.
 User benefit: regressions in architecture documentation are caught early, not after handoff confusion.
 
 ## Validation and Acceptance
@@ -100,5 +100,5 @@ All added scripts are safe to rerun; setup/bootstrap use create-missing behavior
 ## Interfaces and Dependencies
 
 - Depends on local shell tooling (`bash`, `git`, `grep`, `awk`, `sed`, `find`).
-- CI interface: `.github/workflows/quality.yml` running root wrappers.
+- Local quality interface: root wrapper scripts run docs, plan, architecture, and integration checks.
 - Human interface: slash playbooks (`/planner`, `/architecture`) and docs references.

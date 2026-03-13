@@ -3,18 +3,23 @@ set -euo pipefail
 
 # Dev Reconciliation — Branch merge gate
 # Audits all commits on a branch relative to its merge target.
-# Usage: ./reconcile-branch.sh [branch] [--base main] [--agent codex|claude] [--dry-run]
+# Usage: ./reconcile-branch.sh [branch] [--base main] [--agent codex|claude] [--review auto|always|never] [--dry-run]
 
 BRANCH=""
 BASE=""
 AGENT="codex"
+REVIEW_MODE="auto"
 DRY_RUN=false
 MAX_DIFF_BYTES=51200
 MAX_COMMIT_LINES=200
 HARD_GATE_ERRORS=0
 
 usage() {
-  echo "Usage: ./reconcile-branch.sh [branch] [--base main] [--agent codex|claude] [--dry-run]"
+  echo "Usage: ./reconcile-branch.sh [branch] [--base main] [--agent codex|claude] [--review auto|always|never] [--dry-run]"
+}
+
+top_level_scope_count() {
+  awk -F/ 'NF { print (NF == 1 ? "." : $1) }' | sort -u | wc -l | tr -d ' '
 }
 
 while [[ $# -gt 0 ]]; do
@@ -25,11 +30,22 @@ while [[ $# -gt 0 ]]; do
     --agent)
       if [[ $# -lt 2 ]]; then echo "❌ --agent requires a value."; usage; exit 1; fi
       AGENT="$2"; shift 2 ;;
+    --review)
+      if [[ $# -lt 2 ]]; then echo "❌ --review requires a value."; usage; exit 1; fi
+      REVIEW_MODE="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     -*)  echo "Unknown option: $1"; usage; exit 1 ;;
     *)   BRANCH="$1"; shift ;;
   esac
 done
+
+case "$REVIEW_MODE" in
+  auto|always|never) ;;
+  *)
+    echo "❌ Unknown review mode: $REVIEW_MODE (use auto, always, or never)"
+    exit 1
+    ;;
+esac
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 if [ -z "$REPO_ROOT" ]; then
@@ -111,6 +127,58 @@ if [ "$HARD_GATE_ERRORS" -gt 0 ]; then
   exit 1
 fi
 
+CHANGED_FILES=$(git diff --name-only "$MERGE_BASE..$BRANCH" 2>/dev/null || true)
+SOURCE_FILE_COUNT=$(printf "%s\n" "$CHANGED_FILES" | { grep -E '\.(ts|tsx|js|jsx|py|rs|go|rb|java|swift|kt|m|mm|c|cc|cpp|h)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' || true; } | wc -l | tr -d ' ')
+TEST_FILE_COUNT=$(printf "%s\n" "$CHANGED_FILES" | { grep -Ei '(test|spec|_test|\.test\.|\.spec\.)' || true; } | wc -l | tr -d ' ')
+DIR_COUNT=$(printf "%s\n" "$CHANGED_FILES" | top_level_scope_count)
+ARCHITECTURE_TOUCHES=$(printf "%s\n" "$CHANGED_FILES" | grep -cE '^(ARCHITECTURE\.md|\.dev/decisions/)' || true)
+RISK_REASONS=""
+
+if [ "$SOURCE_FILE_COUNT" -ge 6 ]; then
+  RISK_REASONS="${RISK_REASONS}broad source surface (${SOURCE_FILE_COUNT} files); "
+fi
+if [ "$SOURCE_FILE_COUNT" -ge 2 ] && [ "$DIR_COUNT" -ge 2 ]; then
+  RISK_REASONS="${RISK_REASONS}cross-boundary change (${DIR_COUNT} top-level directories); "
+fi
+if [ "$SOURCE_FILE_COUNT" -ge 2 ] && [ "$TEST_FILE_COUNT" -eq 0 ]; then
+  RISK_REASONS="${RISK_REASONS}behavioral change without accompanying tests; "
+fi
+if [ "$COMMIT_COUNT" -ge 4 ]; then
+  RISK_REASONS="${RISK_REASONS}long branch history (${COMMIT_COUNT} commits); "
+fi
+if [ "$ARCHITECTURE_TOUCHES" -gt 0 ]; then
+  RISK_REASONS="${RISK_REASONS}architecture artifacts changed; "
+fi
+
+SHOULD_RUN_LLM_REVIEW=false
+case "$REVIEW_MODE" in
+  always)
+    SHOULD_RUN_LLM_REVIEW=true
+    ;;
+  never)
+    SHOULD_RUN_LLM_REVIEW=false
+    ;;
+  auto)
+    if [ -n "$RISK_REASONS" ]; then
+      SHOULD_RUN_LLM_REVIEW=true
+    fi
+    ;;
+esac
+
+if [ "$SHOULD_RUN_LLM_REVIEW" = true ] && [ -z "$RISK_REASONS" ]; then
+  RISK_REASONS="explicit review requested"
+fi
+
+if [ "$SHOULD_RUN_LLM_REVIEW" != true ]; then
+  if [ "$DRY_RUN" = true ]; then
+    echo ""
+    echo "=== DRY RUN — LLM review skipped (review=$REVIEW_MODE, no risk signals) ==="
+  else
+    echo "✅ Deterministic merge gate passed; LLM review skipped (review=$REVIEW_MODE)."
+  fi
+  exit 0
+fi
+
 # Truncate diffs
 DIFF_TMP=$(mktemp)
 trap 'rm -f "$DIFF_TMP"' EXIT
@@ -136,6 +204,9 @@ PROMPT="You are a code reconciliation agent. Review the following branch work an
 ## Commits ($COMMIT_COUNT)$AGENT_TAG
 $COMMITS
 
+## Risk Signals
+$RISK_REASONS
+
 ## Detailed Diffs $TRUNCATION_NOTE
 $DIFFS
 
@@ -151,7 +222,7 @@ Output as markdown with the header: # Branch Reconciliation — $BRANCH ($DATE)"
 
 if [ "$DRY_RUN" = true ]; then
   echo ""
-  echo "=== DRY RUN — Prompt that would be sent ==="
+  echo "=== DRY RUN — Prompt that would be sent (review=$REVIEW_MODE) ==="
   echo "$PROMPT"
   exit 0
 fi

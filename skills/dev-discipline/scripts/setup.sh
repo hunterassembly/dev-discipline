@@ -39,9 +39,9 @@ echo ""
 
 # Create .dev directories
 # diary/ is gitignored (auto-generated, local only)
-# decisions/ and WORKLOG.md are meant to be committed (shared project knowledge)
-mkdir -p "$DEV_DIR/diary" "$DEV_DIR/decisions" "$DEV_DIR/learnings"
-echo "✅ Created .dev/diary/ (local, gitignored), .dev/decisions/ (tracked), and .dev/learnings/ (tracked)"
+# decisions/, findings/, and learnings/ are meant to be committed (shared project knowledge)
+mkdir -p "$DEV_DIR/diary" "$DEV_DIR/decisions" "$DEV_DIR/findings" "$DEV_DIR/learnings"
+echo "✅ Created .dev/diary/ (local, gitignored), .dev/decisions/ (tracked), .dev/findings/ (tracked), and .dev/learnings/ (tracked)"
 
 # Copy contract.md into .dev/
 CONTRACT_SRC="$SKILL_DIR/assets/contract.md"
@@ -217,5 +217,6 @@ echo "🎉 Dev discipline installed."
 echo "   Contract:  .dev/contract.md"
 echo "   Diary:     .dev/diary/ (gitignored)"
 echo "   Decisions: .dev/decisions/ (tracked)"
+echo "   Findings: .dev/findings/ (tracked, scoped follow-up files)"
 echo "   Learnings: .dev/learnings/ (tracked)"
 echo "   Worklog:   .dev/WORKLOG.md (tracked)"

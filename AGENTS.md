@@ -4,11 +4,12 @@ This repo uses [dev-discipline](https://github.com/hunterassembly/dev-discipline
 
 ## Before You Start
 
-1. Run `scripts/new-project-bootstrap.sh` if hooks aren't installed (check: `.git/hooks/pre-commit` exists)
-2. Read `.dev/contract.md` — the rules you must follow
-3. Check `.dev/FINDINGS.md` for open items from previous reconciliation
-4. Scan `.dev/learnings/` for patterns relevant to your task
-5. Run `scripts/docs-list.sh` to discover relevant docs
+1. If this repo has not been bootstrapped yet, run `skills/dev-discipline/scripts/setup.sh` when working on the toolkit itself, or `scripts/new-project-bootstrap.sh` when applying dev-discipline to another repo
+2. Read `.agent/PLANS.md` and `ARCHITECTURE.md`
+3. Read `.dev/contract.md` if it exists
+4. Check the scoped findings file for your current branch or `AGENT_ID` under `.dev/findings/` if present; otherwise fall back to `.dev/FINDINGS.md`
+5. Scan `.dev/learnings/` for patterns relevant to your task
+6. Run `scripts/docs-list.sh` to discover relevant docs
 
 ## Skills
 

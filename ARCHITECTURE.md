@@ -21,7 +21,6 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
 - `skills/dev-discipline/scripts/`: bootstrap/setup and maintenance commands
 - `skills/planner/scripts/`: plan and architecture validators
 - `docs/`: operational guidance, references, and workflow playbooks
-- `.github/workflows/quality.yml`: CI checks for docs/scripts/validators/tests
 - `tests/`: integration tests for bootstrap and enforcement behavior
 
 ## Runtime Flows
@@ -37,12 +36,12 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
 - Quality flow:
   - `health-check.sh` runs docs checks, template sync checks, validators, drift scan, and optional reconciliation
 - Feedback loop:
-  - Reconciliation extracts open findings to `.dev/FINDINGS.md`
-  - Next session reads FINDINGS before starting work
+  - Reconciliation extracts open findings to `.dev/FINDINGS.md` for shared single-agent work or `.dev/findings/*.md` for scoped branch/agent follow-up
+  - Next session reads the scoped findings file for its branch/agent when present, otherwise the shared FINDINGS file
   - Resolved findings archive to `.dev/learnings/` as institutional memory (category files)
 - Multi-agent flow:
   - Each agent works on `agent/<agent-id>/<concern>` branches with `AGENT_ID` env var set
-  - `reconcile-branch.sh` runs deterministic merge gates (no unsquashed checkpoints, no missing `why:` lines) before LLM review
+  - `reconcile-branch.sh` always runs deterministic merge gates (no unsquashed checkpoints, no missing `why:` lines) and only escalates to LLM review when the branch looks risky or the caller forces review
   - Orchestrator skill defines coordination contract; no custom coordination layer needed
 
 ## Architectural Invariants
@@ -52,9 +51,10 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
 - Execution plans are required for non-trivial source changes.
 - Plan template source-of-truth is `skills/planner/templates/exec-plan.md`.
 - Docs include front matter (`summary`, `read_when`) for discovery tooling.
-- Protected artifacts: `.dev/`, `docs/plans/`, and `docs/decisions/` must never be deleted by agents.
+- Protected artifacts: `.dev/`, `docs/plans/`, and `.dev/decisions/` must never be deleted by agents.
 - Multi-agent features are opt-in: zero overhead when `AGENT_ID` is unset.
-- Feedback loop is deterministic: findings flow to FINDINGS.md, resolved findings archive to learnings.
+- Feedback loop is deterministic: findings flow to shared or scoped findings files, resolved findings archive to learnings.
+- Merge-time LLM review is conditional: low-risk branches should pass on deterministic checks alone.
 
 ## Boundaries and Interfaces
 
@@ -63,7 +63,7 @@ The system is organized into reusable skill packages plus lightweight wrapper sc
   - Root `scripts/*` are consumer-facing interfaces
 - Enforcement boundary:
   - Hooks provide immediate local gatekeeping
-  - CI in `.github/workflows/quality.yml` provides PR-level verification
+  - Root scripts provide repeatable local verification (`scripts/docs-list.sh`, `scripts/planner`, `scripts/validate-architecture.sh`, `scripts/test.sh`)
 - Documentation boundary:
   - `docs/refs/` for stable contracts
   - `docs/slash-commands/` for operational playbooks

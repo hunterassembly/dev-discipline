@@ -33,7 +33,7 @@ Before writing any code, read and follow these rules.
 
 ## Process
 
-0. **Check** — Read `.dev/FINDINGS.md` if it exists. Resolve open items first. Scan `.dev/learnings/` for relevant patterns.
+0. **Check** — Read the scoped findings file for your branch or `AGENT_ID` under `.dev/findings/` when present; otherwise read `.dev/FINDINGS.md` if it exists. Resolve open items first. Scan `.dev/learnings/` for relevant patterns.
 1. **Think** — Plan what you'll change
 2. **Change** — Make the minimal change
 3. **Test** — Verify it works
@@ -47,4 +47,4 @@ Before writing any code, read and follow these rules.
 - Never leave TODO comments without a tracking issue.
 - Never skip the `why:` in commit messages.
 - Never use `--no-verify` to bypass git hooks.
-- Never delete or suggest removing files in `.dev/`, `docs/plans/`, or `docs/decisions/`. These are discipline artifacts, not clutter.
+- Never delete or suggest removing files in `.dev/`, `docs/plans/`, or `.dev/decisions/`. These are discipline artifacts, not clutter.

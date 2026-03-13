@@ -313,11 +313,12 @@ Start from `.dev/discipline.env.example` and tune as needed:
 - `DEV_DISCIPLINE_WARN_FILE_COUNT` (default `10`)
 - `DEV_DISCIPLINE_LARGE_FILE_COUNT` (default `20`)
 - `DEV_DISCIPLINE_WARN_DIR_COUNT` (default `4`)
-- `DEV_DISCIPLINE_PLAN_REQUIRED_SOURCE_FILE_COUNT` (default `5`)
+- `DEV_DISCIPLINE_PLAN_REQUIRED_SOURCE_FILE_COUNT` (default `8`)
+- `DEV_DISCIPLINE_PLAN_REQUIRED_DIR_COUNT` (default `2`)
 - `DEV_DISCIPLINE_ARCHITECTURE_WARN_SOURCE_FILE_COUNT` (default `8`)
 - `DEV_DISCIPLINE_ARCHITECTURE_WARN_DIR_COUNT` (default `3`)
 
-Higher thresholds reduce friction; lower thresholds increase discipline.
+Plans are blocked only when broad source changes cross enough boundaries to justify the overhead. Higher thresholds reduce friction; lower thresholds increase discipline.
 EOF
 
 ensure_file "$REPO_ROOT/.agent/PLANS.md" << 'EOF'

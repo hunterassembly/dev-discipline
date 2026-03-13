@@ -64,7 +64,7 @@ The pre-commit hook will block significant changes without a plan regardless, bu
 Every agent must, before writing code:
 
 1. Read `.dev/contract.md`
-2. Check `.dev/FINDINGS.md` for open items
+2. Check the scoped findings file for this branch or `AGENT_ID` under `.dev/findings/` when present; otherwise read `.dev/FINDINGS.md`
 3. Scan `.dev/learnings/` for relevant patterns
 4. Understand its assigned scope — don't drift into other agents' concerns
 
@@ -81,8 +81,8 @@ Before merging an agent's branch:
 scripts/reconcile-branch.sh agent/<agent-id>/<concern> --base main
 ```
 
-This audits the branch's commits for atomicity, test gaps, doc staleness, and commit message quality. It returns a READY TO MERGE or NEEDS WORK verdict.
-The script also hard-fails before LLM review if checkpoint commits remain or if non-checkpoint commits are missing `why:` lines.
+This always runs deterministic merge checks first and only escalates to LLM review automatically when the branch looks broad or risky. Force review for critical branches with `--review always`, or skip it explicitly with `--review never` when you only want the deterministic gate.
+The script hard-fails if checkpoint commits remain or if non-checkpoint commits are missing `why:` lines.
 
 Do not merge branches with a NEEDS WORK verdict. Assign the same agent to fix findings first.
 
@@ -97,4 +97,4 @@ When multiple branches are ready:
 - Don't modify `.dev/` files directly — agents do that through hooks and reconciliation
 - Don't bypass hooks (`--no-verify`) on behalf of agents
 - Don't merge without running branch reconciliation
-- Don't assign cleanup of `.dev/`, `docs/plans/`, or `docs/decisions/` — these are protected artifacts
+- Don't assign cleanup of `.dev/`, `docs/plans/`, or `.dev/decisions/` — these are protected artifacts

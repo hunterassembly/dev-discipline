@@ -14,6 +14,9 @@ warn() { echo -e "${YELLOW}⚠️  $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
 err()  { echo -e "${RED}❌ $1${NC}"; ERRORS=$((ERRORS + 1)); }
 
 is_int() { [[ "$1" =~ ^[0-9]+$ ]]; }
+top_level_scope_count() {
+  awk -F/ 'NF { print (NF == 1 ? "." : $1) }' | sort -u | wc -l | tr -d ' '
+}
 
 # Optional repo-level config
 # shellcheck disable=SC1090
@@ -25,7 +28,8 @@ fi
 WARN_FILE_COUNT_DEFAULT=10
 LARGE_FILE_COUNT_DEFAULT=20
 WARN_DIR_COUNT_DEFAULT=4
-PLAN_REQUIRED_SOURCE_FILE_COUNT_DEFAULT=5
+PLAN_REQUIRED_SOURCE_FILE_COUNT_DEFAULT=8
+PLAN_REQUIRED_DIR_COUNT_DEFAULT=2
 ARCHITECTURE_WARN_SOURCE_FILE_COUNT_DEFAULT=8
 ARCHITECTURE_WARN_DIR_COUNT_DEFAULT=3
 
@@ -33,10 +37,11 @@ WARN_FILE_COUNT="${DEV_DISCIPLINE_WARN_FILE_COUNT:-$WARN_FILE_COUNT_DEFAULT}"
 LARGE_FILE_COUNT="${DEV_DISCIPLINE_LARGE_FILE_COUNT:-$LARGE_FILE_COUNT_DEFAULT}"
 WARN_DIR_COUNT="${DEV_DISCIPLINE_WARN_DIR_COUNT:-$WARN_DIR_COUNT_DEFAULT}"
 PLAN_REQUIRED_SOURCE_FILE_COUNT="${DEV_DISCIPLINE_PLAN_REQUIRED_SOURCE_FILE_COUNT:-$PLAN_REQUIRED_SOURCE_FILE_COUNT_DEFAULT}"
+PLAN_REQUIRED_DIR_COUNT="${DEV_DISCIPLINE_PLAN_REQUIRED_DIR_COUNT:-$PLAN_REQUIRED_DIR_COUNT_DEFAULT}"
 ARCHITECTURE_WARN_SOURCE_FILE_COUNT="${DEV_DISCIPLINE_ARCHITECTURE_WARN_SOURCE_FILE_COUNT:-$ARCHITECTURE_WARN_SOURCE_FILE_COUNT_DEFAULT}"
 ARCHITECTURE_WARN_DIR_COUNT="${DEV_DISCIPLINE_ARCHITECTURE_WARN_DIR_COUNT:-$ARCHITECTURE_WARN_DIR_COUNT_DEFAULT}"
 
-for numeric in WARN_FILE_COUNT LARGE_FILE_COUNT WARN_DIR_COUNT PLAN_REQUIRED_SOURCE_FILE_COUNT ARCHITECTURE_WARN_SOURCE_FILE_COUNT ARCHITECTURE_WARN_DIR_COUNT; do
+for numeric in WARN_FILE_COUNT LARGE_FILE_COUNT WARN_DIR_COUNT PLAN_REQUIRED_SOURCE_FILE_COUNT PLAN_REQUIRED_DIR_COUNT ARCHITECTURE_WARN_SOURCE_FILE_COUNT ARCHITECTURE_WARN_DIR_COUNT; do
   value="${!numeric}"
   if ! is_int "$value"; then
     warn "Invalid numeric value for $numeric ('$value'). Falling back to defaults."
@@ -45,14 +50,17 @@ for numeric in WARN_FILE_COUNT LARGE_FILE_COUNT WARN_DIR_COUNT PLAN_REQUIRED_SOU
       LARGE_FILE_COUNT) LARGE_FILE_COUNT="$LARGE_FILE_COUNT_DEFAULT" ;;
       WARN_DIR_COUNT) WARN_DIR_COUNT="$WARN_DIR_COUNT_DEFAULT" ;;
       PLAN_REQUIRED_SOURCE_FILE_COUNT) PLAN_REQUIRED_SOURCE_FILE_COUNT="$PLAN_REQUIRED_SOURCE_FILE_COUNT_DEFAULT" ;;
+      PLAN_REQUIRED_DIR_COUNT) PLAN_REQUIRED_DIR_COUNT="$PLAN_REQUIRED_DIR_COUNT_DEFAULT" ;;
       ARCHITECTURE_WARN_SOURCE_FILE_COUNT) ARCHITECTURE_WARN_SOURCE_FILE_COUNT="$ARCHITECTURE_WARN_SOURCE_FILE_COUNT_DEFAULT" ;;
       ARCHITECTURE_WARN_DIR_COUNT) ARCHITECTURE_WARN_DIR_COUNT="$ARCHITECTURE_WARN_DIR_COUNT_DEFAULT" ;;
     esac
   fi
 done
 
+STAGED_FILES=$(git diff --cached --name-only)
+
 # --- 1. Large commit check ---
-FILE_COUNT=$(git diff --cached --name-only | wc -l | tr -d ' ')
+FILE_COUNT=$(printf "%s\n" "$STAGED_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
 if [ "$FILE_COUNT" -gt "$LARGE_FILE_COUNT" ]; then
   warn "Large commit: $FILE_COUNT files staged. Consider splitting into smaller commits."
 elif [ "$FILE_COUNT" -gt "$WARN_FILE_COUNT" ]; then
@@ -60,27 +68,40 @@ elif [ "$FILE_COUNT" -gt "$WARN_FILE_COUNT" ]; then
 fi
 
 # --- 2. Multi-module check ---
-DIR_COUNT=$(git diff --cached --name-only | cut -d'/' -f1 | sort -u | wc -l | tr -d ' ')
+DIR_COUNT=$(printf "%s\n" "$STAGED_FILES" | top_level_scope_count)
 if [ "$DIR_COUNT" -gt "$WARN_DIR_COUNT" ]; then
   warn "Changes span $DIR_COUNT top-level directories. Might be multiple concerns."
 fi
 
 # --- 3. Source without tests ---
-SRC_CHANGED=$(git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx|py|rs|go|rb|java|swift|kt)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' | head -1)
-TEST_CHANGED=$(git diff --cached --name-only | grep -Ei '(test|spec|_test)' | head -1)
+SRC_CHANGED=$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx|js|jsx|py|rs|go|rb|java|swift|kt)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' | head -1)
+TEST_CHANGED=$(printf "%s\n" "$STAGED_FILES" | grep -Ei '(test|spec|_test)' | head -1)
 if [ -n "$SRC_CHANGED" ] && [ -z "$TEST_CHANGED" ]; then
   warn "Source files changed but no test files included. If this is a behavioral change, add tests."
 fi
 
 # --- 4. ExecPlan enforcement (Codex execution plans) ---
-SOURCE_FILE_COUNT=$(git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx|py|rs|go|rb|java|swift|kt|m|mm|c|cc|cpp|h)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' | wc -l | tr -d ' ')
-PLAN_FILE_COUNT=$(git diff --cached --name-only | grep -E '^docs/plans/active/.*\.md$' | grep -Ev '^docs/plans/active/(README|plan-template)\.md$' | wc -l | tr -d ' ')
+SOURCE_FILE_COUNT=$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx|js|jsx|py|rs|go|rb|java|swift|kt|m|mm|c|cc|cpp|h)$' | grep -Ev '(test|spec|_test|\.test\.|\.spec\.)' | wc -l | tr -d ' ')
+PLAN_FILE_COUNT=$(printf "%s\n" "$STAGED_FILES" | grep -E '^docs/plans/active/.*\.md$' | grep -Ev '^docs/plans/active/(README|plan-template)\.md$' | wc -l | tr -d ' ')
 
 if [ "$SOURCE_FILE_COUNT" -gt 0 ] && [ ! -f ".agent/PLANS.md" ]; then
   warn "Missing .agent/PLANS.md. Add it to define your execution-plan operating contract."
 fi
 
-if [ "$SOURCE_FILE_COUNT" -ge "$PLAN_REQUIRED_SOURCE_FILE_COUNT" ] && [ "$PLAN_FILE_COUNT" -eq 0 ]; then
+ARCHITECTURE_CHANGED=$(printf "%s\n" "$STAGED_FILES" | grep -cE '^ARCHITECTURE\.md$' || true)
+PLAN_REQUIRED_REASONS=""
+if [ "$SOURCE_FILE_COUNT" -ge "$PLAN_REQUIRED_SOURCE_FILE_COUNT" ] && [ "$DIR_COUNT" -ge "$PLAN_REQUIRED_DIR_COUNT" ]; then
+  PLAN_REQUIRED_REASONS="broad source changes span $DIR_COUNT top-level directories"
+fi
+if [ "$ARCHITECTURE_CHANGED" -gt 0 ] && [ "$SOURCE_FILE_COUNT" -gt 0 ]; then
+  if [ -n "$PLAN_REQUIRED_REASONS" ]; then
+    PLAN_REQUIRED_REASONS="$PLAN_REQUIRED_REASONS; architecture map changed alongside source edits"
+  else
+    PLAN_REQUIRED_REASONS="architecture map changed alongside source edits"
+  fi
+fi
+
+if [ -n "$PLAN_REQUIRED_REASONS" ] && [ "$PLAN_FILE_COUNT" -eq 0 ]; then
   # Derive plan name from branch
   BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
   case "$BRANCH" in
@@ -109,27 +130,26 @@ if [ "$SOURCE_FILE_COUNT" -ge "$PLAN_REQUIRED_SOURCE_FILE_COUNT" ] && [ "$PLAN_F
 
   if [ -f "$PLAN_PATH" ]; then
     # Plan exists but wasn't staged
-    err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update. Update and stage existing plan: $PLAN_PATH"
+    err "Broad or risky source change requires an execution plan update ($PLAN_REQUIRED_REASONS). Update and stage existing plan: $PLAN_PATH"
   elif [ -n "$PLAN_TEMPLATE" ]; then
     # Scaffold from template
     mkdir -p "$(dirname "$PLAN_PATH")"
     cp "$PLAN_TEMPLATE" "$PLAN_PATH"
-    err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update (docs/plans/active/*.md)."
+    err "Broad or risky source change requires an execution plan update ($PLAN_REQUIRED_REASONS)."
     echo "   Scaffolded $PLAN_PATH from template."
     echo "   Fill in the required sections, stage it, and re-commit."
   else
-    err "Significant source change ($SOURCE_FILE_COUNT files) requires an execution plan update (docs/plans/active/*.md)."
+    err "Broad or risky source change requires an execution plan update ($PLAN_REQUIRED_REASONS)."
   fi
 elif [ "$SOURCE_FILE_COUNT" -gt 0 ] && [ "$PLAN_FILE_COUNT" -eq 0 ]; then
   warn "Source files changed without an execution plan update. For non-trivial work, update docs/plans/active/."
 fi
 
-ARCHITECTURE_CHANGED=$(git diff --cached --name-only | grep -cE '^ARCHITECTURE\.md$' || true)
 if [ "$SOURCE_FILE_COUNT" -ge "$ARCHITECTURE_WARN_SOURCE_FILE_COUNT" ] && [ "$DIR_COUNT" -ge "$ARCHITECTURE_WARN_DIR_COUNT" ] && [ "$ARCHITECTURE_CHANGED" -eq 0 ]; then
   warn "Broad source changes detected without ARCHITECTURE.md update. If boundaries/invariants changed, update architecture map."
 fi
 
-PLAN_FILES=$(git diff --cached --name-only | grep -E '^docs/plans/active/.*\.md$' | grep -Ev '^docs/plans/active/(README|plan-template)\.md$' || true)
+PLAN_FILES=$(printf "%s\n" "$STAGED_FILES" | grep -E '^docs/plans/active/.*\.md$' | grep -Ev '^docs/plans/active/(README|plan-template)\.md$' || true)
 if [ -n "$PLAN_FILES" ]; then
   PLAN_VALIDATOR=""
   for candidate in \
@@ -152,8 +172,6 @@ if [ -n "$PLAN_FILES" ]; then
 fi
 
 # --- 5. Debug artifact check (per-file, language-aware) ---
-STAGED_FILES=$(git diff --cached --name-only)
-
 # JavaScript/TypeScript: console.log, debugger
 JS_FILES=$(echo "$STAGED_FILES" | grep -E '\.(js|jsx|ts|tsx|mjs|cjs)$' || true)
 if [ -n "$JS_FILES" ]; then
